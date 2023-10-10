@@ -460,13 +460,13 @@ main_server <- function(input, output, session) {
     per_year_utility <- per_hire_utility / period
     
     # Format
-    formatted_total_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(utility_value, 2))
+    formatted_total_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(utility_value, 2))
     utilityUn(formatted_total_utility)
-    formatted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(per_hire_utility, 2))
+    formatted_per_hire_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(per_hire_utility, 2))
     utilityUnPer(formatted_per_hire_utility)
-    formatted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(per_year_utility, 2))
+    formatted_per_year_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(per_year_utility, 2))
     utilityUnPerYear(formatted_per_year_utility)
-    formatted_breakEvenSDy <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(breakEvenSDy, 2))
+    formatted_breakEvenSDy <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(breakEvenSDy, 2))
     staffSDy(formatted_breakEvenSDy)
     
     exp_diff <- if (expectancyTopNew > expectancyTopOld) {
@@ -638,14 +638,14 @@ main_server <- function(input, output, session) {
     adjusted_utility_perHire_perYear <- (totDelta / (last * add * tenure1))
     
     # Format
-    formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility, 2))
+    formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility, 2))
     utilityAdj(formatted_adjusted_utility)
-    formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire, 2))
+    formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility_perHire, 2))
     utilityAdjPer(formatted_adjusted_per_hire_utility)
-    formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
+    formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
     utilityAdjPerYear(formatted_adjusted_per_year_utility)
     
-    costAdj(label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(totDelta1/last, 2)))
+    costAdj(label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(totDelta1/last, 2)))
     
     # Display
     
@@ -1044,9 +1044,9 @@ main_server <- function(input, output, session) {
   observeEvent(input$goUn,{
     utilityTrainUn <- input$nTrain*input$dTrain2*input$sdyTrain*input$tTrain-input$nTrain*input$costTrain2
     breakEven <- (input$nTrain*input$costTrain2)/(input$nTrain*input$tTrain*input$dTrain2)
-    formatted_breakEvenTrain <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(breakEven, 2))
+    formatted_breakEvenTrain <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(breakEven, 2))
     
-    formatted_utilityTrainUn <-label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(utilityTrainUn, 2))
+    formatted_utilityTrainUn <-label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(utilityTrainUn, 2))
     
     output$h3 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Unadjusted Values</span>')
       
@@ -1162,16 +1162,16 @@ main_server <- function(input, output, session) {
     }
     
     trainCost <- totDelta1
-    formatted_trainCost <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(trainCost, 2))
+    formatted_trainCost <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(trainCost, 2))
     
     adjusted_utility <- totDelta
     adjusted_utility_perHire <- totDelta / (last*add)
     adjusted_utility_perHire_perYear <- (totDelta / (last * add * tenure1))
     
     # Format
-    formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility, 2))
-    formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire, 2))
-    formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
+    formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility, 2))
+    formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility_perHire, 2))
+    formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
     
     output$h4 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Adjusted Values</span>')
       
@@ -1185,20 +1185,49 @@ main_server <- function(input, output, session) {
     }
     
     if (option == "Training Program"){
+      
+      if (adjusted_utility < 0){
+        output$training_utility <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_utility,
+                "in RODI.")
+        })
+        output$training_utility_per_employee <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_per_hire_utility,
+                "in RODI.")
+        })
+        output$training_utility_per_employee_per_year <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_per_year_utility,
+                "in RODI.")
+        })
+        
+        training_text1 <- paste0("We have conducted an analysis in order to assess the return on development investment(RODI) for an employee training program.
+               The program consisted of ", input$nTrain, " employees attending leadership sessions over a short number of days. Research showed that ", u3, "% of employees who did not participate in the program were assessed to have lower job performance than those who did participate."
+        )
+        
+        training_text2 <- paste0("Our cost analysis found that costs associated with the training program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher job performance, such as compensation enhancements. These are expected to offset RODI associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will be trained each year, and the training program is expected to be used for at least ", input$lengthTrain," years, implementing the training program is expected to cost our company ", formatted_trainCost, " per year."
+        )
+        training_text3 <- paste0("We found that RODI is also affected by employee flows. When employees that attend the program lose the effects from training, the costs and benefits associated with the program change over time. Our research shows that employees that attended the program are expected to be affected for an average of ", ym, ". This means that when employees attend this program, the RODI loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that implementing this program will cost more than any potential gains and result in a total RODI loss of ", formatted_adjusted_utility, "."
+        )
+        
+      }
+      else {
       output$training_utility <- renderText({
         paste("Failing to use this training program will have total RODI losses to the company of:", 
               formatted_adjusted_utility,
-              "in job performance.")
+              "in RODI.")
       })
       output$training_utility_per_employee <- renderText({
         paste("Failing to use this training program will have RODI losses to the company of:", 
               formatted_adjusted_per_hire_utility,
-              "in job performance per employee.")
+              "in RODI per employee.")
       })
       output$training_utility_per_employee_per_year <- renderText({
         paste("Failing to use this training program will have RODI losses to the company of:", 
               formatted_adjusted_per_year_utility,
-              "in job performance per employee per year.")
+              "in RODI per employee per year.")
       })
       
       training_text1 <- paste0("We have conducted an analysis in order to assess the return on development investment(RODI) for an employee training program.
@@ -1209,7 +1238,7 @@ main_server <- function(input, output, session) {
                                )
       training_text3 <- paste0("We found that RODI is also affected by employee flows. When employees that attend the program lose the effects from training, the costs and benefits associated with the program change over time. Our research shows that employees that attended the program are expected to be affected for an average of ", ym, ". This means that when employees do not attend this program, the RODI loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total RODI loss of ", formatted_adjusted_utility, "."
                                )
-      
+      }
       output$trainingText1 <- renderText({
         training_text1
       })
@@ -1310,7 +1339,35 @@ main_server <- function(input, output, session) {
       workOutPer <- round(100*workOut, 1)
       empred <- round((1 - (1/(1+workOut)))*100,1)
       
-      
+      if (adjusted_utility < 0){
+        output$training_utility <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_utility,
+                "in production value.")
+        })
+        output$training_utility_per_employee <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_per_hire_utility,
+                "in production value.")
+        })
+        output$training_utility_per_employee_per_year <- renderText({
+          paste("The cost of this program will wipe out any potential gains from the program and result in a loss of:", 
+                formatted_adjusted_per_year_utility,
+                "in production value.")
+        })
+        
+        goal_text1 <- paste0("An analysis was conducted in order to assess the production value of an employee goal setting program.
+               The program consisted of ", input$nTrain, " employees who participated in setting goals for their production. Research showed that ",
+                             u3, "% of employees who did not participate in the program were less productive than those who did participate."
+        )
+        
+        goal_text2 <- paste0("Our cost analysis found that costs associated with the goal setting program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher production, such as materials cost. These are expected to offset production associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased production over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will use goal setting each year, and the goal setting program is expected to be used for at least ", input$lengthTrain," years, implementing the goal setting program is expected to cost our company ", formatted_trainCost, " per year."
+        )
+        goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that implementing this program will wipe out any potential gains and result in a total production value loss of ", formatted_adjusted_utility, "."
+        )
+        
+      }
+      else {
       output$training_utility <- renderText({
         paste("Failing to use this program will have total lost production costs to the company of:", 
               formatted_adjusted_utility,
@@ -1334,9 +1391,9 @@ main_server <- function(input, output, session) {
       
       goal_text2 <- paste0("Our cost analysis found that costs associated with the goal setting program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher production, such as materials cost. These are expected to offset production associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased production over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will use goal setting each year, and the goal setting program is expected to be used for at least ", input$lengthTrain," years, implementing the goal setting program is expected to cost our company ", formatted_trainCost, " per year."
       )
-      goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees do not use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total production value loss of ", formatted_adjusted_utility, ". Failure to enact the goal setting program will also impact labor costs. Employees that are" , workOutPer, "% more productive means that we will require ", empred, "% fewer workers to meet production demands."
+      goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees do not use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total production value loss of ", formatted_adjusted_utility, ". Failure to enact the goal setting program will also impact labor costs. Employees that are " , workOutPer, "% more productive means that we will require ", empred, "% fewer workers to meet production demands."
       )
-      
+      }
       output$trainingText1 <- renderText({
         goal_text1
       })
@@ -1394,7 +1451,7 @@ main_server <- function(input, output, session) {
             x = 0.5, y = unit(.5, "in"),
             gp = gpar(fontsize = 20),
           )
-          
+          if (adjusted_utility > 0){
           par1 <- textGrob(
             gt1wrap,
             x = unit(1, "in"), y = 0.8,
@@ -1415,7 +1472,29 @@ main_server <- function(input, output, session) {
             gp = gpar(fontsize = 14),
             hjust = 0
           )
-          
+          }
+          else {
+            par1 <- textGrob(
+              gt1wrap,
+              x = unit(1, "in"), y = 0.8,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
+            
+            par2 <- textGrob(
+              gt2wrap,
+              x = unit(1, "in"), y = 0.35,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
+            
+            par3 <- textGrob(
+              gt3wrap,
+              x = unit(1, "in"), y = -0.45,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
+          }
           plot_text <- arrangeGrob(title, par1, par2, par3, plot, nrow= 5, heights = unit(c(1, 1, 1, 1, 5), "null"))
           
           ggsave(
