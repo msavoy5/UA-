@@ -37,7 +37,7 @@ reference_content <- HTML(
     <p>Cucina, J., Berger, J., & Busciglio, H. (2017). Communicating Criterion-Related Validity Using Expectancy Charts: A New Approach. <i>Personnel Assessment and Decisions, 3</i>(1). <a href="https://doi.org/10.25035/pad.2017.001">https://doi.org/10.25035/pad.2017.001</a><p>
     <p>Latham, G. P., & Whyte, G. (1994). The Futility Of Utility Analysis. <i>Personnel Psychology, 47</i>(1), 31–46. <a href="https://doi.org/10.1111/j.1744-6570.1994.tb02408.x">https://doi.org/10.1111/j.1744-6570.1994.tb02408.x</a><p>
     <p>Magnusson, K. (2023, June 9). A Causal Inference Perspective on Therapist Effects. <a href="https://doi.org/10.31234/osf.io/f7mvz">https://doi.org/10.31234/osf.io/f7mvz</a><p>
-    <p>Schmidt, F. L. (2013). The economic value of goal setting to employers. In E. A. Locke & G. P. Latham (Eds.), <i>New developments in goal setting and task performance</i> (pp. 16–20). Routledge/Taylor & Francis Group.<p>
+    <p>Schmidt, F. L. (2012). The economic value of goal setting to employers. In E. A. Locke & G. P. Latham (Eds.), <i>New developments in goal setting and task performance</i> (pp. 16–20). Routledge/Taylor & Francis Group. <a href="https://doi.org/10.4324/9780203082744">https://doi.org/10.4324/9780203082744</a><p>
     <p>Sturman, M. C. (2000). Implications of utility analysis adjustments for estimates of human resource intervention value. <i>Journal of Management, 26</i>(2), 281–299. <a href="https://doi.org/10.1177/014920630002600206">https://doi.org/10.1177/014920630002600206</a></p>
     </div>'
 )
@@ -54,7 +54,10 @@ opening_ui <- fluidPage(
         is presented to managers has a significant impact on managers accepting the results (Sturman, 2000), and this app aims to
         help in that presentation."),
     p("The Glossary tab includes helpful definitions to better understand the purpose of this app. The References tab includes all references
-        used in the creation of this app.")
+        used in the creation of this app."),
+    HTML(
+      'The code for this app is available at: <a href="https://github.com/utilityanalysis/webApp">https://github.com/utilityanalysis/webApp</a>'
+    )
   )
 )
 
