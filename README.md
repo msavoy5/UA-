@@ -1,0 +1,1 @@
+The contents of this repo are meant for educational and research purposes only and are not intended for commercial use. Some of the content used in the production of this repo has been drawn from the Investing In People Online repo which can be found here: https://github.com/investing-in-people/IIP3-software
