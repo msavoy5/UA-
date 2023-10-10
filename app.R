@@ -126,10 +126,10 @@ main_ui <- dashboardPage(
                   sidebarPanel(
                     numericInput("n", "Number of hires:", 470, min = 1, step = 1),
                     numericInput("sdy", "SD of performance in monetary units:", 16290, min = 0.01, step = 1),
-                    numericInput("rxy1", "Validity of old procedure:", 0, min = -1, max = 1, step = 0.01),
-                    numericInput("rxy2", "Validity of new procedure:", 0.4, min = -1, max = 1, step = 0.01),
+                    numericInput("rxy1", "Validity of old procedure:", 0.1, min = -1, max = 1, step = 0.01),
+                    numericInput("rxy2", "Validity of new procedure:", 0.5, min = -1, max = 1, step = 0.01),
                     numericInput("sr", "Selection ratio:", 0.33, min = 0, max = 1, step = 0.01),
-                    numericInput("cost1", "Cost per applicant of old procedure:", 0, min = 0.01, step = 1),
+                    numericInput("cost1", "Cost per applicant of old procedure:", 200, min = 0.01, step = 1),
                     numericInput("cost2", "Cost per applicant of new procedure:", 304.33, min = 0.01, step = 1),
                     numericInput("period", "Anticipated tenure of selected employees:", 18, min = 0.01, step = 1),
                     actionButton("go", "Compute Expectancy")
@@ -151,18 +151,20 @@ main_ui <- dashboardPage(
                 sidebarLayout(
                   sidebarPanel(
                     HTML('<h4>Economic Factors</h4>'),
-                    numericInput("vcost", "Variable Costs (%):", 2, min = 0, max = 100, step = 1),
-                    numericInput("tax", "Tax Rate (%):", 30, min = 0, max = 100, step = 1),
-                    numericInput("drate", "Discount Rate (%):", 1, min = 0, max = 100, step = 1),
-                    HTML('<h4>Workflow</h4>'),
+                    numericInput("vcost", "Variable Costs (%):", 35, min = 0, max = 100, step = 1),
+                    numericInput("tax", "Tax Rate (%):", 63, min = 0, max = 100, step = 1),
+                    numericInput("drate", "Discount Rate (%):", 11, min = 0, max = 100, step = 1),
+                    HTML('<h4>Employee Flows</h4>'),
                     numericInput("pyears" , "Program Length" , 15, min = 1, step = 1),
-                    numericInput("nadd" , "Employees Added per Year:" , 618, min = 0, step = 1),
-                    numericInput("nsub" , "Employees Lost per Year(After Tenure):", 618, min = 0, step = 1),
+                    numericInput("nadd" , "Employees Added per Year:" , 470, min = 0, step = 1),
+                    numericInput("nsub" , "Employees Lost per Year(After Tenure):", 470, min = 0, step = 1),
                     actionButton("go2", "Compute Adjustments")
                   ),
                   mainPanel(
+                    uiOutput("h1"),
                     textOutput("total_utility"),
                     textOutput("break_even_SDy"),
+                    uiOutput("h2"),
                     textOutput("adjusted_utility"),
                     textOutput("adjusted_utility_perHire"),
                     textOutput("adjusted_utility_perHire_perYear"),
@@ -195,7 +197,7 @@ training_ui <- dashboardPage(
   ),
   
   dashboardBody(
-  
+    
     tabItems(
       tabItem(tabName = "training_utility",
               fluidPage(
@@ -212,93 +214,98 @@ training_ui <- dashboardPage(
                 of RODI provides managers with an easily understandable way of seeing the production gains from training programs (Avolio et al., 2010). On the other hand, the goal-setting approach has been 
                 shown to be a useful tool for increasing job performance that managers react positively to (Schmidt, 2013). Sets of inputs from both studies have been provided.")
               )
-              ),
-      tabItem(tabName = "effect_size",
-    
-  fluidPage(
-    useShinyjs(),
-    titlePanel("Effect Size Description"),
-    sidebarLayout(
-    sidebarPanel(
-      id = "sidebar",
-                 HTML('<h3>Utility Inputs</h3>'),
-                 numericInput("nTrain_1", "Number of Employees Trained", 0, min = 0, step = 1),
-                 numericInput("tTrain_1", "Training Effect Duration", 0, min = 0),
-                 numericInput("dTrain2_1", "Effect Size of Procedure", 0),
-                 numericInput("sdyTrain_1", "SD of Performance in Monetary Units", 0),
-                 numericInput("costTrain2_1", "Cost per Employee of Procedure", 0, min = 0),
-                 actionButton("goAvolio_1", "RODI Inputs"),
-                 actionButton("goSchmidt_1", "Goal Setting Inputs"),
-                 br(),
-                 actionButton("goEffect", "Display Effect Size")
-        
-      
-    ),
-    mainPanel(
-     
-      plotOutput("training_graph_1"),
-      br(),
-      textOutput("effectText"),
-      downloadButton("effect_download", "Download PDF")
-            )
-          )
-        )
       ),
-  tabItem(tabName = "utility_outputs",
-          fluidPage(
-            useShinyjs(),
-            titlePanel("Predicting Returns on Training and Developing Employees"),
-            sidebarLayout(
-              sidebarPanel(
-                id = "sidebar",
-                tabsetPanel(
-                  id = "pageTabs",
-                  tabPanel("Page 1",
-                           HTML('<h3>Utility Inputs (Page 1)</h3>'),
-                           numericInput("nTrain", "Number of Employees Trained", 0, min = 0, step = 1),
-                           numericInput("tTrain", "Training Effect Duration", 0, min = 0),
-                           numericInput("dTrain2", "Effect Size of Procedure", 0),
-                           numericInput("sdyTrain", "SD of Performance in Monetary Units", 0),
-                           numericInput("sdP", "SD of Work Output as % of Mean Output", 20, min = 0, max = 100),
-                           numericInput("costTrain2", "Cost per Employee of Procedure", 0, min = 0),
-                           actionButton("goAvolio", "RODI Inputs"),
-                           actionButton("goSchmidt", "Goal Setting Inputs"),
-                           br(),
-                           actionButton("goUn", "Compute Utility(No Adjustments)")
+      tabItem(tabName = "effect_size",
+              
+              fluidPage(
+                useShinyjs(),
+                titlePanel("Effect Size Description"),
+                sidebarLayout(
+                  sidebarPanel(
+                    id = "sidebar",
+                    HTML('<h3>Effect Size Inputs</h3>'),
+                    numericInput("dTrain2_1", "Training Effectiveness (Cohen's d)", 0),
+                    actionButton("goAvolio_1", "RODI Input"),
+                    actionButton("goSchmidt_1", "Goal Setting Input"),
+                    radioButtons("outputOpt1", "Output Type:",
+                                 choices = c("Training Program", "Goal-Setting"),
+                                 selected = "Training Program",
+                    ),
+                    br(),
+                    actionButton("goEffect", "Display Effect Size")
+                    
                   ),
-                  tabPanel("Page 2",
-                           HTML('<h3>Utility Inputs (Page 2)</h3>'),
-                           HTML('<h4>Economic Factors</h4>'),
-                           numericInput("vrateTrain", "Variable Costs (%)", 2, min = 0, max = 100),
-                           numericInput("taxTrain", "Tax Rate (%)", 30, min = 0, max = 100),
-                           numericInput("discTrain", "Discount Rate (%)", 1, min = 0, max = 100),
-                           HTML('<h4>Workflow</h4>'),
-                           numericInput("lengthTrain", "Program Length", 15, min = 0),
-                           numericInput("addTrain", "Employees Trained per Year", 618, min = 0),
-                           numericInput("subTrain", "Loss of Trained Employees per Year (After Effect Duration)", 618, min = 0),
-                           radioButtons("outputOpt", "Output Type:",
-                                        choices = c("Training Program", "Goal-Setting"),
-                                        selected = "Training Program"
-                           ),
-                           actionButton("go4", "Compute Utility")
+                  mainPanel(
+                    
+                    plotOutput("training_graph_1"),
+                    br(),
+                    textOutput("effectText"),
+                    downloadButton("effect_download", "Download PDF")
                   )
                 )
-              ),
-              mainPanel(
-                textOutput("training_utilityUn"),
-                textOutput("training_utility"),
-                textOutput("training_utility_per_employee"),
-                textOutput("training_utility_per_employee_per_year"),
-                textOutput("break_even_train"),
-                br(),
-                textOutput("trainingText"),
-                downloadButton("training_download", "Export Report")
               )
-            )
-        )
+      ),
+      tabItem(tabName = "utility_outputs",
+              fluidPage(
+                useShinyjs(),
+                titlePanel("Predicting Returns on Training and Developing Employees"),
+                sidebarLayout(
+                  sidebarPanel(
+                    id = "sidebar",
+                    tabsetPanel(
+                      id = "pageTabs",
+                      tabPanel("Page 1",
+                               HTML('<h3>Utility Inputs (Page 1)</h3>'),
+                               numericInput("nTrain", "Number of Employees Trained", 0, min = 0, step = 1),
+                               numericInput("tTrain", "Training Effect Duration", 0, min = 0),
+                               numericInput("dTrain2", "Effect Size of Procedure", 0),
+                               numericInput("sdyTrain", "SD of Performance in Monetary Units", 0),
+                               numericInput("sdP", "SD of Work Output as % of Mean Output", 20, min = 0, max = 100),
+                               numericInput("costTrain2", "Cost per Employee of Procedure", 0, min = 0),
+                               actionButton("goAvolio", "RODI Inputs"),
+                               actionButton("goSchmidt", "Goal Setting Inputs"),
+                               br(),
+                               actionButton("goUn", "Compute Utility(No Adjustments)")
+                      ),
+                      tabPanel("Page 2",
+                               HTML('<h3>Utility Inputs (Page 2)</h3>'),
+                               HTML('<h4>Economic Factors</h4>'),
+                               numericInput("vrateTrain", "Variable Costs (%)", 35, min = 0, max = 100),
+                               numericInput("taxTrain", "Tax Rate (%)", 63, min = 0, max = 100),
+                               numericInput("discTrain", "Discount Rate (%)", 11, min = 0, max = 100),
+                               HTML('<h4>Employee Flows</h4>'),
+                               numericInput("lengthTrain", "Program Length", 15, min = 0),
+                               numericInput("addTrain", "Employees Trained per Year", 618, min = 0),
+                               numericInput("subTrain", "Loss of Trained Employees per Year (After Effect Duration)", 618, min = 0),
+                               radioButtons("outputOpt", "Output Type:",
+                                            choices = c("Training Program", "Goal-Setting"),
+                                            selected = "Training Program"
+                               ),
+                               actionButton("go4", "Compute Utility")
+                      )
+                    )
+                  ),
+                  mainPanel(
+                    uiOutput("h3"),
+                    textOutput("training_utilityUn"),
+                    textOutput("break_even_train"),
+                    uiOutput("h4"),
+                    textOutput("training_utility"),
+                    textOutput("training_utility_per_employee"),
+                    textOutput("training_utility_per_employee_per_year"),
+                    br(),
+                    textOutput("trainingText1"),
+                    br(),
+                    textOutput("trainingText2"),
+                    br(),
+                    textOutput("trainingText3"),
+                    downloadButton("training_download", "Export Report")
+                  )
+                )
+              )
+      )
     )
-)
-)
+  )
 )
 
 #Server
@@ -319,13 +326,15 @@ main_server <- function(input, output, session) {
   elmn <- reactiveVal()
   eumn <- reactiveVal()
   etn <- reactiveVal()
+  bh <- reactiveVal()
+  gh <- reactiveVal()
   expPro <- reactiveVal()
   expPro2 <- reactiveVal()
   expDiff <- reactiveVal()
   expDiff2 <- reactiveVal()
   selectedPage <- reactiveVal(1)
   
-#Staffing Utility 
+  #Toggles
   observe({ 
     #Staffing Toggle 1
     toggleState(
@@ -381,7 +390,7 @@ main_server <- function(input, output, session) {
       disable("sdP")
     }
   })
-   
+  #Staffing Utility  
   observeEvent(input$go, {
     
     enable("download_plot")
@@ -430,6 +439,11 @@ main_server <- function(input, output, session) {
     #compute new lower expectancy
     expectancyLowNew <- 100*round(Expectancyfunc(input$rxy2, -Inf , ux(input$sr)-.67, input$rxy2*(ux(input$sr))+.67, Inf),2)
     
+    badHire <- round(((expectancyLowOld-expectancyLowNew)/expectancyLowOld)*100, 0)
+    goodHire <- round(((expectancyTopNew-expectancyTopOld)/expectancyTopOld)*100, 0)
+    bh(badHire)
+    gh(goodHire)
+    
     elo(expectancyLowOld)
     elmo(expectancyLMOld)
     eumo(expectancyUMOld)
@@ -445,26 +459,15 @@ main_server <- function(input, output, session) {
     # Calculate the per-hire per-year utility
     per_year_utility <- per_hire_utility / period
     
-    # Format the total utility value as a dollar amount
-    
-    
+    # Format
     formatted_total_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(utility_value, 2))
     utilityUn(formatted_total_utility)
-    
-    # Format the per-hire utility value as a dollar amount
     formatted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(per_hire_utility, 2))
     utilityUnPer(formatted_per_hire_utility)
-    
-    # Format the per-hire per-year utility value as a dollar amount
     formatted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(per_year_utility, 2))
     utilityUnPerYear(formatted_per_year_utility)
-    
-    # Format the break even value as a dollar amount
     formatted_breakEvenSDy <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(breakEvenSDy, 2))
     staffSDy(formatted_breakEvenSDy)
-    
-    
-    
     
     exp_diff <- if (expectancyTopNew > expectancyTopOld) {
       expectancyTopNew - expectancyTopOld
@@ -509,7 +512,7 @@ main_server <- function(input, output, session) {
       )
       bar_data$Quartile <- str_wrap(bar_data$Quartile, width = 10)
       max_y_value <- 1.2 * max(max(bar_data$Probability))
-      title_text <- paste0("Using the ", exp_procedure, " improves the probability of hiring a high performer by ", exp_diff, " percentage points.")
+      title_text <- paste0("Using the ", exp_procedure, " improves the probability of acquiring a high performer by ", goodHire, "%.")
       wrapped_title <- str_wrap(title_text, width = 90)
       p <- ggplot(bar_data, aes(x = reorder(Quartile, Probability), y = Probability, fill = Procedure)) +
         geom_bar(stat = "identity", position = "dodge") +
@@ -520,7 +523,7 @@ main_server <- function(input, output, session) {
         ) +
         ylim(0, max_y_value) +  # Set the y-axis limits
         scale_fill_manual(values = c("Old" = "#FF9999", "New" = "#9999FF")) +
-        theme_minimal() +  # Customize the plot theme (optional)
+        theme_minimal() +  
         theme(
           plot.title = element_text(hjust = 0, margin = margin(b = 10), size = 16, lineheight = 1.2),
           axis.text = element_text(size = 14),
@@ -537,24 +540,21 @@ main_server <- function(input, output, session) {
     
     output$expectancy_text <- renderText({
       paste0("The above chart compares the expectancy of the new staffing procedure to the old staffing procedure. Expectancy is a 
-             measure of the ability of a test to predict outcomes. The ", exp_procedure, " improves the probability of hiring a high performer by ", exp_diff, " percentage
-             points. It is also important to know how many bad hires a staffing procedure is avoiding. The above chart tells us that the new procedure 
-             ", exp_procedure2, " the risk of a bad hire by ", exp_diff2, " percentage points.")
+             measure of the ability of a test to predict outcomes. Using the new procedure improves the chance that we acquire a high 
+             performer by ", goodHire, "% [(",etn(), " - ",eto(), ")/", eto() ,"] and avoid a bad hire by ", badHire, "% [(",elo(), " - ",eln(), ")/", elo() ,"].")
     })
     
     output$download_plot <- downloadHandler(
       filename = function() {
-        "expectancy.pdf"  # Set the filename for the downloaded file
+        "expectancy.pdf"  
       },
       
       content = function(file) {
         
         capWrap <- strwrap(paste0("The above chart compares the expectancy of the new staffing procedure to the old staffing procedure. Expectancy is a 
-             measure of the ability of a test to predict outcomes. The ", exp_procedure, " improves the probability of hiring a high performer by ", exp_diff, " percentage
-             points. It is also important to know how many bad hires a staffing procedure is avoiding. The above chart tells us that the new procedure 
-             ", exp_procedure2, " the risk of a bad hire by ", exp_diff2, " percentage points."), width = 90, simplify = TRUE)
+             measure of the ability of a test to predict outcomes. Using the new procedure improves the chance that we acquire a high 
+             performer by ", goodHire, "% [(",etn(), " - ",eto(), ")/", eto() ,"] and avoid a bad hire by ", badHire, "% [(",elo(), " - ",eln(), ")/", elo() ,"]."), width = 90, simplify = TRUE)
         capWrap <- paste(capWrap, collapse = "\n")
-        # Create the ggplot2 plot with a caption
         plot <- plot_data() +
           labs(
             caption = capWrap
@@ -569,15 +569,14 @@ main_server <- function(input, output, session) {
           )
         
         
-        # Save the ggplot2 plot as a PDF file with custom width and height
         ggsave(
           file,
           plot,
           device = "pdf",
-          width = 10.625,  # Adjust the width as needed
-          height = 13.75,  # Adjust the height as needed
-          units = "in",  # Specify units (inches in this case)
-          dpi = 300  # Adjust DPI if necessary
+          width = 10.625,  
+          height = 13.75,  
+          units = "in",  
+          dpi = 300  
         )
       }
     )
@@ -626,9 +625,10 @@ main_server <- function(input, output, session) {
       if (i > last) {ck <- 0}
       if (nk >= 0) {
         delta1 <- nk * ((discRat^i) * valid * ord * SDjp * (1 + varCosts) * (1 - taxProp))
+        delta3 <- nk * ((discRat^i) * valid * ord * SDjp * (-varCosts) * (taxProp))
       }
       delta2 <- ck * (1 - taxProp) * (discRat^(i - 1))
-      totDelta1 <- totDelta1 + delta2
+      totDelta1 <- totDelta1 + delta2 + delta3
       delta <- delta1 - delta2
       totDelta <- totDelta + delta
     }
@@ -637,49 +637,45 @@ main_server <- function(input, output, session) {
     adjusted_utility_perHire <- totDelta / (last*add)
     adjusted_utility_perHire_perYear <- (totDelta / (last * add * tenure1))
     
-    # Format the total utility value as a dollar amount
+    # Format
     formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility, 2))
     utilityAdj(formatted_adjusted_utility)
-    
-    # Format the per-hire utility value as a dollar amount
     formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire, 2))
     utilityAdjPer(formatted_adjusted_per_hire_utility)
-    
-    # Format the per-hire per-year utility value as a dollar amount
     formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
     utilityAdjPerYear(formatted_adjusted_per_year_utility)
     
-    costAdj(label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(totDelta1, 2)))
+    costAdj(label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(totDelta1/last, 2)))
     
-    # Display the formatted unadjusted utility
+    # Display
     
-    output$total_utility <- renderText({
-      paste("The total predicted returns (unadjusted) on improved staffing are:", 
-            utilityUn())
+    output$h1 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Unadjusted Values</span>')
     })
     
-    # Display the formatted break even value
+    output$h2 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Adjusted Values</span>')
+    })
+    
+    output$total_utility <- renderText({
+      paste("The opportunity costs of failing to use the program are:", 
+            utilityUn())
+    })
     output$break_even_SDy <- renderText({
       paste("The break-even value for Standard Deviation of the new procedure is:", 
             staffSDy())
     })
-    
-    # Display the formatted total utility value
     output$adjusted_utility <- renderText({
-      paste("The total predicted returns on improved staffing are:", 
+      paste("Failing to use this program will have total opportunity costs to the company of:", 
             formatted_adjusted_utility)
     })
-    
-    # Display the formatted per-hire utility value
     output$adjusted_utility_perHire <- renderText({
-      paste("The predicted returns on improved staffing per hire are:", 
-            formatted_adjusted_per_hire_utility)
+      paste("Failing to use this program will have opportunity costs to the company of:", 
+            formatted_adjusted_per_hire_utility,
+            "per hire.")
     })
-    
-    # Display the formatted per-hire per-year utility value
     output$adjusted_utility_perHire_perYear <- renderText({
-      paste("The predicted returns on improved staffing per hire per year are:", 
-            formatted_adjusted_per_year_utility)
+      paste("Failing to use this program will have opportunity costs to the company of:", 
+            formatted_adjusted_per_year_utility,
+            "per hire per year they stay.")
     })
     
     lowHigh <- if(input$rxy1 > input$rxy2) {
@@ -688,10 +684,15 @@ main_server <- function(input, output, session) {
     else{
       "new"
     }
-    
-    staff1 <- paste0("In order to assess the effectiveness of new staffing procedures, an analysis has been conducted comparing the quality and quantity of new hires to the cost of the selection processes. As part of this analysis, validity was found for each of the staffing procedures. The new procedure to be used has a validity of ", input$rxy2, ". This is in comparison to the old procedure which has a validity of ", input$rxy1, ". This means that the ", lowHigh, " procedure more accurately predicts the successfulness of hired candidates.")
-    staff2 <- paste0("The costs associated with administering the new procedure were $", input$cost2, " per applicant. This is in comparison to the cost of the old procedure which is $", input$cost1, " per applicant. Additionally, there are variable costs at a rate of ", input$vcost,"% taxes at a rate of ", input$tax, "%, and a discount rate of ", input$drate,"%. Since ", input$n, " new employees are to be hired from a large selection pool per year, and the new procedure is expected to last ", input$pyears, " years, the total additional cost of the new procedure compared to the old procedure is projected to be ", costAdj(), ".")
-    staff3 <- paste0("The value of more productive employees at this position within the company was found to be $", input$sdy, ".Since these employees are expected to stay with the company for an average of ", input$period, " years, the average employee selected under the new system is expected to be worth ", utilityAdjPer(), " more than employees selected under the old system. When we consider that the program is expected to last ", input$pyears, " years, ", input$nadd, " employees will be added each year of the program, and ", input$nsub, " employees will leave the company each year after their expected tenure, then we can expect the total value added to the company by utilizing the new procedure is ", utilityAdj(), ".")
+    ls <- if(input$rxy1 > input$rxy2) {
+      "smaller"
+    }
+    else{
+      "larger"
+    }
+    staff1 <- paste0("In order to assess the effectiveness of new staffing procedures, we have conducted an analysis comparing the quality and quantity of new hires to the cost of the selection processes. As part of this analysis, we have found the validity for each of the staffing procedures. Our research indicates that the new procedure will have an operational validity of ", input$rxy2, ", which is ", ls, " than the operational validity of ", input$rxy1, " defining the old procedure. This means that the ", lowHigh, " procedure more accurately avoids bad hires.")
+    staff2 <- paste0("Our cost analysis found that costs associated with administering the new procedure are $", input$cost2, " per applicant, in comparison to the cost of the old procedure which is $", input$cost1, " per applicant. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdy, ". The first is a variable cost adjustment and refers to costs that increase with hiring higher quality talent, such as compensation enhancements. These are expected to offset opportunity costs associated with this program by ", input$vcost, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$tax, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$drate, "%. Since we will hire ", input$nadd, " new employees from a large selection pool each year, and the new procedure is expected to be used for at least ", input$pyears," years, implementing the new program is expected to cost our company ", costAdj(), " per year.")
+    staff3 <- paste0("We found that opportunity cost is also affected by employee flows. When employees selected through the program enter and exit our company, the costs and benefits associated with the program change over time. Our research shows that employees selected using this program are expected to stay with the company an average of ", input$period, " years. This means that when we do not hire using this procedure, the opportunity cost associated with each employee is ", utilityAdjPer(), " or ", utilityAdjPerYear(), " per year they stay. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total opportunity cost of ", utilityAdj(), ".")
     
     s1wrap <- strwrap(staff1, width = 97, indent = 8, simplify = TRUE)
     s1wrap <- paste(s1wrap, collapse = "\n")
@@ -722,7 +723,7 @@ main_server <- function(input, output, session) {
     plot_data <- reactive({
       bar_data <- data.frame(
         Quartile = rep(c("Bottom 25%", "Lower Middle 25%", "Upper Middle 25%", "Top 25%"), each = 2),
-        Procedure = factor(c("Old", "New"), levels = c("Old", "New")),  # Specify the order of levels
+        Procedure = factor(c("Old", "New"), levels = c("Old", "New")),
         Probability = c(
           elo1, eln1,
           elmo1, elmn1,
@@ -732,8 +733,9 @@ main_server <- function(input, output, session) {
       )
       bar_data$Quartile <- str_wrap(bar_data$Quartile, width = 10)
       max_y_value <- 1.2 * max(max(bar_data$Probability))
-      title_text <- paste0("Using the ", expPro(), " improves the probability of hiring a high performer by ", expDiff(), " percentage points.")
-      wrapped_title <- str_wrap(title_text, width = 90)
+      title_text <- paste0("Using the ", expPro(), " improves the probability of acquiring a high performer by ", gh(), " percent.")
+      wrapped_title <- strwrap(title_text, width = 100, simplify = TRUE)
+      wrapped_title <- paste(wrapped_title, collapse = "\n")
       p <- ggplot(bar_data, aes(x = reorder(Quartile, Probability), y = Probability, fill = Procedure)) +
         geom_bar(stat = "identity", position = "dodge") +
         labs(
@@ -745,9 +747,9 @@ main_server <- function(input, output, session) {
         scale_fill_manual(values = c("Old" = "#FF9999", "New" = "#9999FF")) +
         theme_minimal() +  # Customize the plot theme (optional)
         theme(
-          plot.title = element_text(hjust = 0, margin = margin(b = 10), size = 16, lineheight = 1.2),
-          axis.text = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
+          plot.title = element_text(hjust = 0, margin = margin(b = 10), size = 12, lineheight = 1.2),
+          axis.text = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
           axis.text.x = element_text(angle = 0, hjust = .5)
         ) +
         ggtitle(paste0("Figure 1\n", wrapped_title))
@@ -757,7 +759,7 @@ main_server <- function(input, output, session) {
     
     output$download_pdf <- downloadHandler(
       filename = function() {
-        "staffing_report.pdf"  # Set the filename for the downloaded file
+        "staffing_report.pdf"
       },
       
       content = function(file) {
@@ -777,22 +779,21 @@ main_server <- function(input, output, session) {
         
         par2 <- textGrob(
           s2wrap,
-          x = unit(1, "in"), y = 0.42,
+          x = unit(1, "in"), y = -0.02,
           gp = gpar(fontsize = 14),
           hjust = 0
         )
         
         par3 <- textGrob(
           s3wrap,
-          x = unit(1, "in"), y = 0.12,
+          x = unit(1, "in"), y = -0.76,
           gp = gpar(fontsize = 14),
           hjust = 0
         )
         
         capWrap <- strwrap(paste0("The above chart compares the expectancy of the new staffing procedure to the old staffing procedure. Expectancy is a 
-             measure of the ability of a test to predict outcomes. The ", expPro(), " improves the probability of hiring a high performer by ", expDiff(), " percentage
-             points. It is also important to know how many bad hires a staffing procedure is avoiding. The above chart tells us that the new procedure 
-             ", expPro2(), " the risk of a bad hire by ", expDiff2(), " percentage points."), width = 90, simplify = TRUE)
+             measure of the ability of a test to predict outcomes. Using the new procedure improves the chance that we acquire a high 
+             performer by ", gh(), "% [(",etn(), " - ",eto(), ")/", eto() ,"] and avoid a bad hire by ", bh(), "% [(",elo(), " - ",eln(), ")/", elo() ,"]."), width = 100, simplify = TRUE)
         capWrap <- paste(capWrap, collapse = "\n")
         # Create the ggplot2 plot with a caption
         plot <- plot_data() +
@@ -803,29 +804,28 @@ main_server <- function(input, output, session) {
             plot.caption = element_text(
               hjust = 0,
               margin = margin(t = 10, unit = "pt"),
-              size = 14
+              size = 12
             ),
-            plot.margin = margin(1,1,1,1, "in")
+            plot.margin = margin(2.25,1,1,1, "in")
           )
         
         plot_text <- arrangeGrob(title, par1, par2, par3, plot, nrow= 5, heights = unit(c(1, 1, 1, 1, 5), "null"))
         
-        # Save the ggplot2 plot as a PDF file with custom width and height
         ggsave(
           file,
           plot_text,
           device = "pdf",
-          width = 10.625,  # Adjust the width as needed
-          height = 13.75,  # Adjust the height as needed
-          units = "in",  # Specify units (inches in this case)
-          dpi = 300  # Adjust DPI if necessary
+          width = 10.625,  
+          height = 13.75,  
+          units = "in",  
+          dpi = 300  
         )
       }
     )
     
   })
   
-#Training Utility
+  #Training Utility
   
   observeEvent(input$selectPage1, {
     updateTabsetPanel(session, "pageTabs", selected = "Page 1")
@@ -836,19 +836,11 @@ main_server <- function(input, output, session) {
   })
   
   observeEvent(input$goAvolio_1, {
-    updateNumericInput(session, "nTrain_1", value = 30, min = 0, step = 1)
-    updateNumericInput(session, "tTrain_1", value = .167, min = 0)
     updateNumericInput(session, "dTrain2_1", value = .52)
-    updateNumericInput(session, "sdyTrain_1", value = 40000, min = 0)
-    updateNumericInput(session, "costTrain2_1", value = 2155.77, min = 0)
   })
   
   observeEvent(input$goSchmidt_1, {
-    updateNumericInput(session, "nTrain_1", value = 35, min = 0, step = 1)
-    updateNumericInput(session, "tTrain_1", value = 5, min = 0)
     updateNumericInput(session, "dTrain2_1", value = .46)
-    updateNumericInput(session, "sdyTrain_1", value = 20000, min = 0)
-    updateNumericInput(session, "costTrain2_1", value = 200, min = 0)
   })
   
   observeEvent(input$goAvolio, {
@@ -858,6 +850,8 @@ main_server <- function(input, output, session) {
     updateNumericInput(session, "dTrain2", value = .52)
     updateNumericInput(session, "sdyTrain", value = 40000, min = 0)
     updateNumericInput(session, "costTrain2", value = 2155.77, min = 0)
+    updateNumericInput(session, "addTrain", value = 30, min = 0)
+    updateNumericInput(session, "subTrain", value = 30, min = 0)
   })
   
   observeEvent(input$goSchmidt, {
@@ -867,10 +861,12 @@ main_server <- function(input, output, session) {
     updateNumericInput(session, "dTrain2", value = .46)
     updateNumericInput(session, "sdyTrain", value = 20000, min = 0)
     updateNumericInput(session, "costTrain2", value = 200, min = 0)
+    updateNumericInput(session, "addTrain", value = 35, min = 0)
+    updateNumericInput(session, "subTrain", value = 35, min = 0)
   })
-#Effect Size Tab  
+  #Effect Size Tab  
   observeEvent(input$goEffect,{
-    
+    option <- input$outputOpt1
     enable("effect_download")
     
     u3 <- round(pnorm(input$dTrain2_1), 2)*100
@@ -884,10 +880,9 @@ main_server <- function(input, output, session) {
     y1 <- dnorm(x, mean = z1, sd = 1)
     y2 <- dnorm(x, mean = z2, sd = 1)
     
-    # Create a data frame for ggplot2
+    # data frame
     df <- data.frame(x = x, y1 = y1, y2 = y2)
     
-    # Create the ggplot2 plot
     gg <- ggplot(df, aes(x = x)) +
       geom_ribbon(aes(ymin = 0, ymax = y1), fill = "red", alpha = 0.3) +
       geom_ribbon(aes(ymin = 0, ymax = y2), fill = "blue", alpha = 0.3) +
@@ -904,10 +899,6 @@ main_server <- function(input, output, session) {
       annotate("text", x = z2/2, y = 0.17, label = paste(dt), color = "black", size = 4) +
       annotate("text", x = z1 - 0.3, y = 0.45, label = "Untrained", color = "red", size = 4) +
       annotate("text", x = z2 + 0.3, y = 0.45, label = "Trained", color = "blue", size = 4) +
-      labs(
-        y = "",
-        x = "Standardized Job Performance"
-      ) +
       scale_x_continuous(limits = c(-4, 4), breaks = seq(-4, 4, by = 1)) +
       ylim(0, 0.5) +
       theme_minimal() +
@@ -919,79 +910,158 @@ main_server <- function(input, output, session) {
         legend.title = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()
-      ) +
-      ggtitle(paste0("Figure 1\nAn effect size of ", dt, " is a ", u3, "% increase in mean production."))
+      )
     
     
-    
-    output$training_graph_1 <- renderPlot(gg)
-    
-    output$effectText <- renderText({
-      paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
-             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the trained group will be above the
-             mean production value of the untrained group, and there is a ", sup, "% chance that a person picked at
-             random from the trained group will have a higher production value than a person picked at random
-             from the untrained group.")
-    })
-    
-    output$effect_download <- downloadHandler(
-      filename = function() {
-        "expectancy.pdf"  # Set the filename for the downloaded file
-      },
+    if (option == "Training Program"){
+      output$training_graph_1 <- renderPlot(gg +
+                                              labs(
+                                                y = "",
+                                                x = "Standardized Job Performance"
+                                              ) +
+                                              ggtitle(paste0("Figure 1\nWith an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less job performance than if enacted.")))
+      output$effectText <- renderText({
+        paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
+             mean production value of the trained group, and there is a ", sup, "% chance that a person picked at
+             random from the untrained group will have a lower production value than a person picked at random
+             from the trained group.")
+      })
       
-      content = function(file) {
+      output$effect_download <- downloadHandler(
+        filename = function() {
+          "expectancy.pdf"  
+        },
         
-        capWrap <- strwrap(paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
-             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the trained group will be above the
+        content = function(file) {
+          
+          capWrap <- strwrap(paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
              mean production value of the untrained group, and there is a ", sup, "% chance that a person picked at
-             random from the trained group will have a higher production value than a person picked at random
-             from the untrained group."), width = 100, simplify = TRUE)
-        capWrap <- paste(capWrap, collapse = "\n")
-        # Create the ggplot2 plot with a caption
-        plot <- gg +
-          labs(
-            caption = capWrap
-          ) +
-          theme(
-            plot.caption = element_text(
-              hjust = 0,
-              margin = margin(t = 10, unit = "pt"),
-              size = 14
-            ),
-            plot.margin = margin(1,0.5,0.5,0.5, "in")
+             random from the untrained group will have a lower production value than a person picked at random
+             from the trained group."), width = 100, simplify = TRUE)
+          capWrap <- paste(capWrap, collapse = "\n")
+          titleWrap <- strwrap(paste0("With an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less job performance than if enacted."), width = 100, simplify = TRUE)
+          titleWrap <- paste(titleWrap, collapse = "\n")
+          plot <- gg +
+            labs(
+              caption = capWrap
+            ) +
+            theme(
+              plot.caption = element_text(
+                hjust = 0,
+                margin = margin(t = 10, unit = "pt"),
+                size = 14
+              ),
+              plot.margin = margin(1,0.5,0.5,0.5, "in")
+            )+
+            labs(
+              y = "",
+              x = "Standardized Job Performance"
+            ) +
+            ggtitle(paste0("Figure 1\n", titleWrap)) 
+          
+          ggsave(
+            file,
+            plot,
+            device = "pdf",
+            width = 10.625,  
+            height = 6.875,  
+            units = "in",  
+            dpi = 300  
           )
+        }
+      )
+      
+    }
+    
+    else {
+      output$training_graph_1 <- renderPlot(gg +
+                                              labs(
+                                                y = "",
+                                                x = "Standardized Production"
+                                              ) +
+                                              ggtitle(paste0("Figure 1\nWith an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less production value than if enacted.")))
+      output$effectText <- renderText({
+        paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
+             mean job performance value of the trained group, and there is a ", sup, "% chance that a person picked at
+             random from the untrained group will have a lower job performance value than a person picked at random
+             from the trained group.")
+      })
+      
+      output$effect_download <- downloadHandler(
+        filename = function() {
+          "expectancy.pdf"  
+        },
         
-        
-        # Save the ggplot2 plot as a PDF file with custom width and height
-        ggsave(
-          file,
-          plot,
-          device = "pdf",
-          width = 10.625,  # Adjust the width as needed
-          height = 6.875,  # Adjust the height as needed
-          units = "in",  # Specify units (inches in this case)
-          dpi = 300  # Adjust DPI if necessary
-        )
-      }
-    )
+        content = function(file) {
+          
+          capWrap <- strwrap(paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
+             mean job performance value of the trained group, and there is a ", sup, "% chance that a person picked at
+             random from the untrained group will have a lower job performance value than a person picked at random
+             from the trained group."), width = 100, simplify = TRUE)
+          capWrap <- paste(capWrap, collapse = "\n")
+          titleWrap <- strwrap(paste0("With an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less production value than if enacted."), width = 100, simplify = TRUE)
+          titleWrap <- paste(titleWrap, collapse = "\n")
+          plot <- gg +
+            labs(
+              caption = capWrap
+            ) +
+            theme(
+              plot.caption = element_text(
+                hjust = 0,
+                margin = margin(t = 10, unit = "pt"),
+                size = 14
+              ),
+              plot.margin = margin(1,0.5,0.5,0.5, "in")
+            )+
+            labs(
+              y = "",
+              x = "Standardized Production"
+            ) +
+            ggtitle(paste0("Figure 1\n", titleWrap))
+          
+          ggsave(
+            file,
+            plot,
+            device = "pdf",
+            width = 10.625,  
+            height = 6.875,  
+            units = "in",  
+            dpi = 300  
+          )
+        }
+      )
+      
+    }
     
   })
   
-#Training Utility Output Tab
+  #Training Utility Output Tab
   
   observeEvent(input$goUn,{
     utilityTrainUn <- input$nTrain*input$dTrain2*input$sdyTrain*input$tTrain-input$nTrain*input$costTrain2
+    breakEven <- (input$nTrain*input$costTrain2)/(input$nTrain*input$tTrain*input$dTrain2)
+    formatted_breakEvenTrain <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(breakEven, 2))
     
     formatted_utilityTrainUn <-label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(utilityTrainUn, 2))
     
+    output$h3 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Unadjusted Values</span>')
+      
+    })
     output$training_utilityUn <- renderText({
-      paste("The total unadjusted returns on training utility are:", formatted_utilityTrainUn)
+      paste("The opportunity costs of failing to use the program are:", formatted_utilityTrainUn)
+    })
+    output$break_even_train <- renderText({
+      paste("The break even value of SDy is:", 
+            formatted_breakEvenTrain)
     })
   })
   
   observeEvent(input$go4,{
     enable("training_download")
-    breakEven <- (input$nTrain*input$costTrain2)/(input$nTrain*input$tTrain*input$dTrain2)
     
     u3 <- round(pnorm(input$dTrain2), 2)*100
     sup <- round(pnorm(input$dTrain2/sqrt(2)), 2)*100
@@ -1004,10 +1074,8 @@ main_server <- function(input, output, session) {
     y1 <- dnorm(x, mean = z1, sd = 1)
     y2 <- dnorm(x, mean = z2, sd = 1)
     
-    # Create a data frame for ggplot2
     df <- data.frame(x = x, y1 = y1, y2 = y2)
     
-    # Create the ggplot2 plot
     gg <- ggplot(df, aes(x = x)) +
       geom_ribbon(aes(ymin = 0, ymax = y1), fill = "red", alpha = 0.3) +
       geom_ribbon(aes(ymin = 0, ymax = y2), fill = "blue", alpha = 0.3) +
@@ -1023,11 +1091,7 @@ main_server <- function(input, output, session) {
       ) +
       annotate("text", x = z2/2, y = 0.17, label = paste(dt), color = "black", size = 4) +
       annotate("text", x = z1 - 0.3, y = 0.45, label = "Untrained", color = "red", size = 4) +
-      annotate("text", x = z2 + 0.3, y = 0.45, label = "Trained", color = "blue", size = 4) +
-      labs(
-        y = "",
-        x = "Standardized Job Performance"
-      ) +
+      annotate("text", x = z2 + 0.3, y = 0.45, label = "Trained", color = "blue", size = 4)  +
       scale_x_continuous(limits = c(-4, 4), breaks = seq(-4, 4, by = 1)) +
       ylim(0, 0.5) +
       theme_minimal() +
@@ -1039,10 +1103,7 @@ main_server <- function(input, output, session) {
         legend.title = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()
-      ) +
-      ggtitle(paste0("Figure 1\nAn effect size of ", dt, " is a ", u3, "% increase in mean production."))
-    
-    formatted_breakEvenTrain <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(breakEven, 2))
+      ) 
     
     option <- input$outputOpt
     varCosts <- -input$vrateTrain/100
@@ -1075,86 +1136,96 @@ main_server <- function(input, output, session) {
     
     totDelta <- 0
     totDelta1 <- 0
-    
     plot_data <- data.frame(step = c(-2, 1), intermediate_totDelta = c(0, 0))
     
     for (i in 1:numyr) {
-      if (i > tenure1) {nk <- nk - subt}
+      if (i > ceiling(tenure1)) {nk <- 0}
       if (i <= last) {nk <- nk + add}
       if (i > last) {ck <- 0}
-      if (i == 1) {
-        delta1 <- nk * ((discRat^i) * valid *  SDjp * (1 + varCosts) * (1 - taxProp))
+      if (nk > 0) {
+        delta1 <- nk * ((discRat^i) * (valid*add*tenure1)/nk * SDjp * (1 + varCosts) * (1 - taxProp))
+        delta3 <- nk * ((discRat^i) * (valid*add*tenure1)/nk * SDjp * (-varCosts) * (taxProp))
       }
-      if (i > 1 & i < numyr - 1) {
-        delta1 <- nk * ((discRat^i) * valid/(nk/add) *  SDjp * (1 + varCosts) * (1 - taxProp))
-      }
-      if (i == numyr - 1) {
+      if (nk == 0) {
         delta1 <- 0
       }
       delta2 <- ck * (1 - taxProp) * (discRat^(i - 1))
-      totDelta1 <- totDelta1 + delta2
+      totDelta1 <- totDelta1 + delta2 + delta3
       delta <- delta1 - delta2
       totDelta <- totDelta + delta
       
-      # Store intermediate totDelta value
+      
       intermediate_totDelta <- c(intermediate_totDelta, totDelta)
       
       # Append to plot_data
       plot_data <- rbind(plot_data, data.frame(step = i, intermediate_totDelta = totDelta))
     }
     
+    trainCost <- totDelta1
+    formatted_trainCost <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(trainCost, 2))
+    
     adjusted_utility <- totDelta
     adjusted_utility_perHire <- totDelta / (last*add)
     adjusted_utility_perHire_perYear <- (totDelta / (last * add * tenure1))
     
-    # Format the total utility value as a dollar amount
+    # Format
     formatted_adjusted_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility, 2))
-    
-    # Format the per-hire utility value as a dollar amount
     formatted_adjusted_per_hire_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire, 2))
-    
-    # Format the per-hire per-year utility value as a dollar amount
     formatted_adjusted_per_year_utility <- label_dollar(scale = .001, prefix= "~$", suffix = "K")(signif(adjusted_utility_perHire_perYear, 2))
     
+    output$h4 <- renderUI({HTML('<span style="font-size: 14px; font-weight: bold;">Adjusted Values</span>')
+      
+    })
+    
+    if (input$tTrain < 1) {
+      ym <- paste(round(input$tTrain*12,0), "months")
+    }
+    else {
+      ym <- paste(input$tTrain, "years")
+    }
+    
     if (option == "Training Program"){
-      # Display the formatted total utility value
       output$training_utility <- renderText({
-        paste("The total predicted returns on an improved training program are:", 
-              formatted_adjusted_utility)
+        paste("Failing to use this training program will have total RODI losses to the company of:", 
+              formatted_adjusted_utility,
+              "in job performance.")
       })
-      
-      # Display the formatted per-hire utility value
       output$training_utility_per_employee <- renderText({
-        paste("The predicted returns on an improved training program per hire are:", 
-              formatted_adjusted_per_hire_utility)
+        paste("Failing to use this training program will have RODI losses to the company of:", 
+              formatted_adjusted_per_hire_utility,
+              "in job performance per employee.")
       })
-      
-      # Display the formatted per-hire per-year utility value
       output$training_utility_per_employee_per_year <- renderText({
-        paste("The predicted returns on an improved training program per hire per year are:", 
-              formatted_adjusted_per_year_utility)
+        paste("Failing to use this training program will have RODI losses to the company of:", 
+              formatted_adjusted_per_year_utility,
+              "in job performance per employee per year.")
       })
       
-      output$break_even_train <- renderText({
-        paste("The break even value of SDy is:", 
-              formatted_breakEvenTrain)
+      training_text1 <- paste0("We have conducted an analysis in order to assess the return on development investment(RODI) for an employee training program.
+               The program consisted of ", input$nTrain, " employees attending leadership sessions over a short number of days. Research showed that ", u3, "% of employees who did not participate in the program were assessed to have lower job performance than those who did participate."
+                               )
+      
+      training_text2 <- paste0("Our cost analysis found that costs associated with the training program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher job performance, such as compensation enhancements. These are expected to offset RODI associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will be trained each year, and the training program is expected to be used for at least ", input$lengthTrain," years, implementing the training program is expected to cost our company ", formatted_trainCost, " per year."
+                               )
+      training_text3 <- paste0("We found that RODI is also affected by employee flows. When employees that attend the program lose the effects from training, the costs and benefits associated with the program change over time. Our research shows that employees that attended the program are expected to be affected for an average of ", ym, ". This means that when employees do not attend this program, the RODI loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total RODI loss of ", formatted_adjusted_utility, "."
+                               )
+      
+      output$trainingText1 <- renderText({
+        training_text1
+      })
+      output$trainingText2 <- renderText({
+        training_text2
+      })
+      output$trainingText3 <- renderText({
+        training_text3
       })
       
-      training_text <- paste0("An analysis was conducted in order to assess the return on development investment(RODI) for an employee training program.
-               The program consisted of ", input$nTrain, " employees attending leadership sessions over a short number of days. It was found that
-               the effects of the program are expected to last ", input$tTrain, " years. The cost of the program was assessed to be around $",
-                              input$costTrain2, " per employee. In order to accurately assess RODI, additional costs were considered. These costs include variable
-               costs, at ", input$vrateTrain, "% and taxes, at ", input$taxTrain, "%. To help offset these costs, the company is expected to invest
-               in funds at a discount rate of ", input$discTrain, "% using production revenues. The performance of employees before training was also
-               assessed. The standard deviation of untrained employees was found to be $", input$sdyTrain, ". ",
-                              u3, "% of employees who participated in the program were assessed to be more productive than those who did not participate. If the program
-               is repeated every year for ", input$lengthTrain, " years, then the total RODI from the program is expected to be ", formatted_adjusted_utility,
-                              ". The RODI per employee who participates in the program is expected to be ", formatted_adjusted_per_hire_utility, ", and the RODI per
-               employee per year is expected to be ", formatted_adjusted_per_year_utility, "."
-      )
-      ttwrap <- strwrap(training_text, width = 97, indent = 8, simplify = TRUE)
-      ttwrap <- paste(ttwrap, collapse = "\n")
-      
+      tt1wrap <- strwrap(training_text1, width = 97, indent = 8, simplify = TRUE)
+      tt1wrap <- paste(tt1wrap, collapse = "\n")
+      tt2wrap <- strwrap(training_text2, width = 97, indent = 8, simplify = TRUE)
+      tt2wrap <- paste(tt2wrap, collapse = "\n")
+      tt3wrap <- strwrap(training_text3, width = 97, indent = 8, simplify = TRUE)
+      tt3wrap <- paste(tt3wrap, collapse = "\n")
       output$trainingText <- renderText({
         training_text
       })
@@ -1165,14 +1236,15 @@ main_server <- function(input, output, session) {
         },
         
         content = function(file) {
-          
+          titleWrap <- strwrap(paste0("With an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less job performance than if enacted."), width = 90, simplify = TRUE)
+          titleWrap <- paste(titleWrap, collapse = "\n")
           capWrap <- strwrap(paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
-             With an effect size of ", input$dTrain2, ", ", u3, "% of the trained group will be above the
-             mean production value of the untrained group, and there is a ", sup, "% chance that a person picked at
-             random from the trained group will have a higher production value than a person picked at random
-             from the untrained group."), width = 97, simplify = TRUE)
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
+             mean job performance value of the trained group, and there is a ", sup, "% chance that a person picked at
+             random from the untrained group will have a lower job performance value than a person picked at random
+             from the trained group."), width = 97, simplify = TRUE)
           capWrap <- paste(capWrap, collapse = "\n")
-          # Create the ggplot2 plot with a caption
+          
           plot <- gg +
             labs(
               caption = capWrap
@@ -1183,31 +1255,50 @@ main_server <- function(input, output, session) {
                 margin = margin(t = 10, unit = "pt"),
                 size = 14
               ),
-              plot.margin = margin(1,1,1,1, "in")
-            )
+              plot.margin = margin(2,1,1,1, "in")
+            ) +
+            labs(
+              y = "",
+              x = "Standardized Job Performance"
+            ) +
+            ggtitle(paste0("Figure 1\n", titleWrap))
           title <- textGrob(
             "Training Report",
-            x = 0.5, y = unit(1.4, "in"),
+            x = 0.5, y = unit(0.5, "in"),
             gp = gpar(fontsize = 20),
           )
           
           par1 <- textGrob(
-            ttwrap,
-            x = unit(1, "in"), y = 0.6,
+            tt1wrap,
+            x = unit(1, "in"), y = .6,
             gp = gpar(fontsize = 14),
             hjust = 0
           )
           
-          plot_text <- arrangeGrob(title, par1, plot, nrow= 3, heights = unit(c(1, 1, 4), "null"))
+          par2 <- textGrob(
+            tt2wrap,
+            x = unit(1, "in"), y = 0.1,
+            gp = gpar(fontsize = 14),
+            hjust = 0
+          )
+          
+          par3 <- textGrob(
+            tt3wrap,
+            x = unit(1, "in"), y = -0.6,
+            gp = gpar(fontsize = 14),
+            hjust = 0
+          )
+          
+          plot_text <- arrangeGrob(title, par1, par2, par3, plot, nrow= 5, heights = unit(c(1, 1, 1, 1, 5), "null"))
           
           ggsave(
             file,
             plot_text,
             device = "pdf",
-            width = 10.625,  # Adjust the width as needed
-            height = 13.75,  # Adjust the height as needed
-            units = "in",  # Specify units (inches in this case)
-            dpi = 300  # Adjust DPI if necessary
+            width = 10.625,  
+            height = 13.75,  
+            units = "in",  
+            dpi = 300  
           )
         }
       )
@@ -1219,47 +1310,49 @@ main_server <- function(input, output, session) {
       workOutPer <- round(100*workOut, 1)
       empred <- round((1 - (1/(1+workOut)))*100,1)
       
-      # Display the formatted total utility value
+      
       output$training_utility <- renderText({
-        paste("The total predicted returns on an improved goal-setting program are:", 
-              formatted_adjusted_utility)
+        paste("Failing to use this program will have total lost production costs to the company of:", 
+              formatted_adjusted_utility,
+              "in production value.")
       })
-      
-      # Display the formatted per-hire utility value
       output$training_utility_per_employee <- renderText({
-        paste("The predicted returns on an improved goal-setting program per hire are:", 
-              formatted_adjusted_per_hire_utility)
+        paste("Failing to use this program will have lost production costs to the company of:", 
+              formatted_adjusted_per_hire_utility,
+              "in production value per employee.")
       })
-      
-      # Display the formatted per-hire per-year utility value
       output$training_utility_per_employee_per_year <- renderText({
-        paste("The predicted returns on an improved goal-setting program per hire per year are:", 
-              formatted_adjusted_per_year_utility)
+        paste("Failing to use this program will have lost production costs to the company of:", 
+              formatted_adjusted_per_year_utility,
+              "in production value per employee per year.")
       })
       
-      output$break_even_train <- renderText({
-        paste("The break even value of SDy is:", 
-              formatted_breakEvenTrain)
-      })
-      
-      goal_text <- paste0("An analysis was conducted in order to assess the dollar value of an employee goal-setting program.
-               The program consisted of ", input$nTrain, " employees who participated in setting goals for their production. The
-               program is set to last ", input$tTrain, "years. The cost of implementing the program was assessed to be around $",
-                          input$costTrain2, " per employee. In order to accurately assess the total value, additional costs were considered. These costs include variable
-               costs, at ", input$vrateTrain, "% and taxes, at ", input$taxTrain, "%. To help offset these costs, the company is expected to invest
-               in funds at a discount rate of ", input$discTrain, "% using production revenues. The performance of employees before implementing 
-               goal-setting was also assessed. The standard deviation of employees before goal-setting was found to be $", input$sdyTrain, ". ",
-                          u3, "% of employees who participated in the program were assessed to be more productive than those who did not participate. If the program
-               is repeated for additional employees every year for ", input$lengthTrain, " years, then the total value of goal-setting is expected to be ", formatted_adjusted_utility,
-                          ". The value added per employee who participates in the program is expected to be ", formatted_adjusted_per_hire_utility, ", and the value added per
-               employee per year is expected to be ", formatted_adjusted_per_year_utility, ". An increase in employee output of ", workOutPer, "% is expected 
-               based on the effects of goal setting on mean employee output. This means that the company can reduce the workforce by ", empred, "% and
-               maintain current levels of production."
+      goal_text1 <- paste0("An analysis was conducted in order to assess the production value of an employee goal setting program.
+               The program consisted of ", input$nTrain, " employees who participated in setting goals for their production. Research showed that ",
+                          u3, "% of employees who did not participate in the program were less productive than those who did participate."
       )
       
-      gtwrap <- strwrap(goal_text, width = 97, indent = 8, simplify = TRUE)
-      gtwrap <- paste(gtwrap, collapse = "\n")
+      goal_text2 <- paste0("Our cost analysis found that costs associated with the goal setting program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher production, such as materials cost. These are expected to offset production associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased production over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will use goal setting each year, and the goal setting program is expected to be used for at least ", input$lengthTrain," years, implementing the goal setting program is expected to cost our company ", formatted_trainCost, " per year."
+      )
+      goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees do not use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total production value loss of ", formatted_adjusted_utility, ". Failure to enact the goal setting program will also impact labor costs. Employees that are" , workOutPer, "% more productive means that we will require ", empred, "% fewer workers to meet production demands."
+      )
       
+      output$trainingText1 <- renderText({
+        goal_text1
+      })
+      output$trainingText2 <- renderText({
+        goal_text2
+      })
+      output$trainingText3 <- renderText({
+        goal_text3
+      })
+      
+      gt1wrap <- strwrap(goal_text1, width = 97, indent = 8, simplify = TRUE)
+      gt1wrap <- paste(gt1wrap, collapse = "\n")
+      gt2wrap <- strwrap(goal_text2, width = 97, indent = 8, simplify = TRUE)
+      gt2wrap <- paste(gt2wrap, collapse = "\n")
+      gt3wrap <- strwrap(goal_text3, width = 97, indent = 8, simplify = TRUE)
+      gt3wrap <- paste(gt3wrap, collapse = "\n")
       output$trainingText <- renderText({
         goal_text
       })
@@ -1270,14 +1363,15 @@ main_server <- function(input, output, session) {
         },
         
         content = function(file) {
-          
+          titleWrap <- strwrap(paste0("With an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less production value than if enacted."), width = 90, simplify = TRUE)
+          titleWrap <- paste(titleWrap, collapse = "\n")
           capWrap <- strwrap(paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
-             With an effect size of ", input$dTrain2, ", ", u3, "% of the trained group will be above the
+             With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
              mean production value of the untrained group, and there is a ", sup, "% chance that a person picked at
-             random from the trained group will have a higher production value than a person picked at random
-             from the untrained group."), width = 97, simplify = TRUE)
+             random from the untrained group will have a lower production value than a person picked at random
+             from the trained group."), width = 97, simplify = TRUE)
           capWrap <- paste(capWrap, collapse = "\n")
-          # Create the ggplot2 plot with a caption
+          
           plot <- gg +
             labs(
               caption = capWrap
@@ -1288,31 +1382,50 @@ main_server <- function(input, output, session) {
                 margin = margin(t = 10, unit = "pt"),
                 size = 14
               ),
-              plot.margin = margin(1,1,1,1, "in")
-            )
+              plot.margin = margin(2,1,1,1, "in")
+            )+
+            labs(
+              y = "",
+              x = "Standardized Production"
+            ) +
+            ggtitle(paste0("Figure 1\n", titleWrap))
           title <- textGrob(
             "Goal Setting Report",
-            x = 0.5, y = unit(1.4, "in"),
+            x = 0.5, y = unit(.5, "in"),
             gp = gpar(fontsize = 20),
           )
           
           par1 <- textGrob(
-            gtwrap,
-            x = unit(1, "in"), y = 0.6,
+            gt1wrap,
+            x = unit(1, "in"), y = 0.8,
             gp = gpar(fontsize = 14),
             hjust = 0
           )
           
-          plot_text <- arrangeGrob(title, par1, plot, nrow= 3, heights = unit(c(1, 1, 4), "null"))
+          par2 <- textGrob(
+            gt2wrap,
+            x = unit(1, "in"), y = 0.5,
+            gp = gpar(fontsize = 14),
+            hjust = 0
+          )
+          
+          par3 <- textGrob(
+            gt3wrap,
+            x = unit(1, "in"), y = -0.35,
+            gp = gpar(fontsize = 14),
+            hjust = 0
+          )
+          
+          plot_text <- arrangeGrob(title, par1, par2, par3, plot, nrow= 5, heights = unit(c(1, 1, 1, 1, 5), "null"))
           
           ggsave(
             file,
             plot_text,
             device = "pdf",
-            width = 10.625,  # Adjust the width as needed
-            height = 13.75,  # Adjust the height as needed
-            units = "in",  # Specify units (inches in this case)
-            dpi = 300  # Adjust DPI if necessary
+            width = 10.625,  
+            height = 13.75,  
+            units = "in",  
+            dpi = 300  
           )
         }
       )
@@ -1323,7 +1436,7 @@ main_server <- function(input, output, session) {
   
 }
 
-# Create the opening page and main app within a navbarPage
+# Navbar
 ui <- navbarPage(
   "UA+",
   tabPanel("Opening Page", opening_ui),
@@ -1333,5 +1446,4 @@ ui <- navbarPage(
   tabPanel("References", reference_ui)
 )
 
-# Create a Shiny app
 shinyApp(ui, main_server)
