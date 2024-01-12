@@ -11,8 +11,11 @@ library(stringr)
 library(grid)
 library(gridExtra)
 library(gridtext)
+library(plotly)
 
 #Define Custom Functions
+
+#Expectancy Function
 Expectancyfunc <- function(Validity, PredLowerCut, PredUpperCut, CritLowerCut, CritUpperCut){
   n <- 1000
   mean <- c(0,0)
@@ -25,6 +28,13 @@ Expectancyfunc <- function(Validity, PredLowerCut, PredUpperCut, CritLowerCut, C
   xprob <- pnorm(PredUpperCut, mean = 0, sd = 1) - pnorm(PredLowerCut, mean = 0, sd = 1)
   expectancy <- jtprob/xprob
   return(expectancy[1])
+}
+
+# Function for formatting axis labels
+dollar_format2 <- function(x) {
+  ifelse(abs(x) >= 1e6, paste0("$", round(x/1e6, 1), "M"), 
+         ifelse(abs(x) >= 1e3, paste0("$", round(x/1e3, 1), "K"), 
+                paste0("$", round(x, 1))))
 }
 
 #References
@@ -91,18 +101,40 @@ glossary_ui <- fluidPage(
 
 #Staffing UI
 main_ui <- dashboardPage(
+  
   dashboardHeader(title = "Staffing Utility"),
   
+  #sidebar
   dashboardSidebar(
     sidebarMenu(
       id = "sidebar",
       menuItem("Staffing Utility", tabName = "staffing_utility", icon = icon("file-alt")),
       menuItem("Expectancy", tabName = "expectancy", icon = icon("dashboard")),
-      menuItem("Utility Output", tabName = "utility_adjustments", icon = icon("sliders-h"))
+      menuItem("Utility Output", tabName = "utility_adjustments", icon = icon("sliders-h")),
+      menuItem("Monte Carlo Analysis", tabName = "monte", icon = icon("magnifying-glass-chart"))
     )
   ),
   
+  #Body
   dashboardBody(
+    tags$head(
+      tags$style(HTML("
+      .custom-split-layout {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .custom-split-layout > * {
+        margin-right: 10px; /* Adjust the margin as needed */
+      }
+      body, .content-wrapper, .main-sidebar, .right-side {
+            height: 100vh !important;
+            overflow-y: auto;
+          }
+    "))
+    ),
+    
+    #Tab 1
     tabItems(
       tabItem(tabName = "staffing_utility",
               fluidPage(
@@ -121,10 +153,12 @@ main_ui <- dashboardPage(
                 )
               )
       ),
+      #Tab 2
       tabItem(tabName = "expectancy",
               fluidPage(
                 useShinyjs(),
                 titlePanel("Expectancy of High Job Performance"),
+                #Sidebar
                 sidebarLayout(
                   sidebarPanel(
                     numericInput("n", "Number of hires:", 470, min = 1, step = 1),
@@ -147,10 +181,13 @@ main_ui <- dashboardPage(
                 )
               )
       ),
+      
+      #Tab 3
       tabItem(tabName = "utility_adjustments",
               fluidPage(
                 useShinyjs(),
                 titlePanel("Predicting Returns on Improved Staffing Procedures"),
+                #Sidebar
                 sidebarLayout(
                   sidebarPanel(
                     HTML('<h4>Economic Factors</h4>'),
@@ -163,6 +200,7 @@ main_ui <- dashboardPage(
                     numericInput("nsub" , "Employees Lost per Year(After Tenure):", 470, min = 0, step = 1),
                     actionButton("go2", "Compute Adjustments")
                   ),
+                  #Main Content
                   mainPanel(
                     uiOutput("h1"),
                     textOutput("total_utility"),
@@ -181,6 +219,165 @@ main_ui <- dashboardPage(
                   )
                 )
               )
+      ),
+      tabItem(tabName = "monte",
+              titlePanel("Monte Carlo Analysis"),
+                sidebarPanel(
+                  width = 5,
+                  tabsetPanel(
+                    id = "tabs",
+                    tabPanel(
+                      "Page 1",
+                      fluidRow(
+                        splitLayout(
+                          numericInput("t1", "Min Tenure", 18, min = 1),
+                          numericInput("t2", "Max Tenure", 18, min = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("n1", "Min Hires", 470, min = 1),
+                          numericInput("n2", "Max Hires", 470, min = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("sel1", "Min Applicants/Hire", 3, min = 1),
+                          numericInput("sel2", "Max Applicants/Hire", 3, min = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("r1", "Min Validity", .4, min = -1, max = 1),
+                          numericInput("r2", "Max Validity", .4, min = -1, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("sdy1", "Min SDy", 16290, min = 0),
+                          numericInput("sdy2", "Max SDy", 16290, min = 0),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("costm1", "Min Cost/Applicant", 304.33, min = 0),
+                          numericInput("costm2", "Max Cost/Applicant", 304.33, min = 0),
+                          class = "custom-split-layout"
+                        )
+                      )
+                    ),
+                    tabPanel(
+                      "Page 2",
+                      fluidRow(
+                        splitLayout(
+                          numericInput("i1", "Min Discount Rate", .01, min = 0),
+                          numericInput("i2", "Max Discount Rate", .11, min = 0),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("vc1", "Min Variable Costs", .02, min = 0),
+                          numericInput("vc2", "Max Variable Costs", .35, min = 0),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("tax1", "Min Tax Rate", .30, min = 0),
+                          numericInput("tax2", "Max Tax Rate", .63, min = 0),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("ir1", "Min Validity Change", .05, min = -1, max = 1),
+                          numericInput("ir2", "Max Validity Change", .38, min = -1, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("pa1", "Min Initial Acceptance", .2, min = 0, max = 1),
+                          numericInput("pa2", "Max Initial Acceptance", .7, min = 0, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("bxy1", "Min Acceptance-Productivy Correlation", -.5, min = -1, max = 1),
+                          numericInput("bxy2", "Max Acceptance-Productivy Correlation", 0, min = -1, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      )
+                    ),
+                    tabPanel(
+                      "Page 3",
+                      fluidRow(
+                        splitLayout(
+                          numericInput("stab1", "Min Performance Stability", .5, min = 0, max = 1),
+                          numericInput("stab2", "Max Performance Stability", 1, min = 0, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("rc1", "Min Cutoff Score", -2),
+                          numericInput("rc2", "Max Cutoff Score", 0),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("pto1", "Min Turnover Probability", 0, min = 0, max = 1),
+                          numericInput("pto2", "Max Turnover Probability", 0.33, min = 0, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      fluidRow(
+                        splitLayout(
+                          numericInput("corrto1", "Min Turnover-Performance Correlation", 0, min = -1, max = 1),
+                          numericInput("corrto2", "Max Turnover-Performance Correlation", .5, min = -1, max = 1),
+                          class = "custom-split-layout"
+                        )
+                      ),
+                      numericInput("seed", "Set Seed for Reproducibility", 12845, min = 1),
+                      actionButton("monteGo", "Run Monte Carlo Analysis")
+                    )
+                  )
+                ),
+              fluidRow(
+                column(
+                  width = 6,
+                  textOutput("medianmonte"),
+                  textOutput("negmonte"),
+                  box(
+                    title = "Density Plot",
+                    status = "primary",
+                    solidHeader = TRUE,
+                    width = 14,
+                    height = 6,
+                    plotlyOutput("density")
+                  )
+                )
+              ),
+              fluidRow(
+                column(
+                  width = 12,
+                  box(
+                      width = 9,
+                      title= "Adjustment Effects",
+                      tableOutput("sturman2"), 
+                      status = "primary", 
+                    )
+              )
+          )
+          
       )
     )
   )
@@ -189,7 +386,6 @@ main_ui <- dashboardPage(
 #Training UI
 training_ui <- dashboardPage(
   dashboardHeader(title = "Training Utility"),
-  
   dashboardSidebar(
     sidebarMenu(
       id = "sidebarTrain",
@@ -313,6 +509,7 @@ training_ui <- dashboardPage(
 
 #Server
 main_server <- function(input, output, session) {
+  #global variables
   utilityUn <- reactiveVal()
   utilityUnPer <- reactiveVal()
   utilityUnPerYear <- reactiveVal()
@@ -377,6 +574,55 @@ main_server <- function(input, output, session) {
         input$sdyTrain_1 > 0 &
         input$costTrain2_1 >= 0
     )
+    toggleState(
+      id = "monteGo",
+      condition =
+        input$t1 >= 1 &
+        input$t2 >= 1 &
+        input$n1 >= 1 &
+        input$n2 >= 1 &
+        input$sel1 >= 1 &
+        input$sel2 >= 1 &
+        input$r1 >= -1 &
+        input$r1 <= 1 &
+        input$r2 >= -1 &
+        input$r2 <= 1 &
+        input$sdy1 >= 0 &
+        input$sdy2 >= 0 &
+        input$costm1 >= 0 &
+        input$costm2 >= 0 &
+        input$i1 >= 0 &
+        input$i2 >= 0 &
+        input$vc1 >= 0 &
+        input$vc2 >= 0 &
+        input$tax1 >= 0 &
+        input$tax2 >= 0 &
+        input$ir1 >= -1 &
+        input$ir1 <= 1 &
+        input$ir2 >= -1 &
+        input$ir2 <= 1 &
+        input$pa1 >= 0 &
+        input$pa1 <= 1 &
+        input$pa2 >= 0 &
+        input$pa2 <= 1 &
+        input$bxy1 >= -1 &
+        input$bxy1 <= 1 &
+        input$bxy2 >= -1 &
+        input$bxy2 <= 1 &
+        input$stab1 >= 0 &
+        input$stab1 <= 1 &
+        input$stab2 >= 0 &
+        input$stab2 <= 1 &
+        input$pto1 >= 0 &
+        input$pto1 <= 1 &
+        input$pto2 >= 0 &
+        input$pto2 <= 1 &
+        input$corrto1 >= -1 &
+        input$corrto1 <= 1 &
+        input$corrto2 >= -1 &
+        input$corrto2 <= 1
+    )
+    
     if (!isTruthy(input$go)) {
       disable("download_plot")
     }
@@ -442,11 +688,13 @@ main_server <- function(input, output, session) {
     #compute new lower expectancy
     expectancyLowNew <- 100*round(Expectancyfunc(input$rxy2, -Inf , ux(input$sr)-.67, input$rxy2*(ux(input$sr))+.67, Inf),2)
     
+    #Calculate increase in good hires/ decrease in bad hires
     badHire <- round(((expectancyLowOld-expectancyLowNew)/expectancyLowOld)*100, 0)
     goodHire <- round(((expectancyTopNew-expectancyTopOld)/expectancyTopOld)*100, 0)
     bh(badHire)
     gh(goodHire)
     
+    #assign local variables to global variables
     elo(expectancyLowOld)
     elmo(expectancyLMOld)
     eumo(expectancyUMOld)
@@ -472,6 +720,7 @@ main_server <- function(input, output, session) {
     formatted_breakEvenSDy <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(breakEvenSDy, 2))
     staffSDy(formatted_breakEvenSDy)
     
+    #If else for procedure with better results
     exp_diff <- if (expectancyTopNew > expectancyTopOld) {
       expectancyTopNew - expectancyTopOld
     }
@@ -500,6 +749,7 @@ main_server <- function(input, output, session) {
       "decreases"
     }
     expPro2 <- exp_procedure2
+    
     #expectancy chart
     
     plot_data <- reactive({
@@ -541,12 +791,14 @@ main_server <- function(input, output, session) {
       plot_data()
     })
     
+    #Plain Text
     output$expectancy_text <- renderText({
       paste0("The above chart compares the expectancy of the new staffing procedure to the old staffing procedure. Expectancy is a 
              measure of the ability of a test to predict outcomes. Using the new procedure improves the chance that we acquire a high 
              performer by ", goodHire, "% [(",etn(), " - ",eto(), ")/", eto() ,"] and avoid a bad hire by ", badHire, "% [(",elo(), " - ",eln(), ")/", elo() ,"].")
     })
     
+    #Export PDF
     output$download_plot <- downloadHandler(
       filename = function() {
         "expectancy.pdf"  
@@ -586,6 +838,7 @@ main_server <- function(input, output, session) {
     
   })
   
+  #Utility Tab
   observeEvent(input$go2,{
     enable("download_pdf")
     varCosts <- -input$vcost/100
@@ -603,6 +856,7 @@ main_server <- function(input, output, session) {
     add <- input$nadd
     subt <- input$nsub
     
+    #Utility Function for employee flows
     nk <- 0
     paytot <- 0
     paysel <- 0
@@ -681,6 +935,7 @@ main_server <- function(input, output, session) {
             "per hire per year they stay.")
     })
     
+    #If Else for larger utility
     lowHigh <- if(input$rxy1 > input$rxy2) {
       "old"
     }
@@ -693,6 +948,7 @@ main_server <- function(input, output, session) {
     else{
       "larger"
     }
+    #Plain text
     staff1 <- paste0("In order to assess the effectiveness of new staffing procedures, we have conducted an analysis comparing the quality and quantity of new hires to the cost of the selection processes. As part of this analysis, we have found the validity for each of the staffing procedures. Our research indicates that the new procedure will have an operational validity of ", input$rxy2, ", which is ", ls, " than the operational validity of ", input$rxy1, " defining the old procedure. This means that the ", lowHigh, " procedure more accurately avoids bad hires.")
     staff2 <- paste0("Our cost analysis found that costs associated with administering the new procedure are $", input$cost2, " per applicant, in comparison to the cost of the old procedure which is $", input$cost1, " per applicant. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdy, ". The first is a variable cost adjustment and refers to costs that increase with hiring higher quality talent, such as compensation enhancements. These are expected to offset opportunity costs associated with this program by ", input$vcost, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$tax, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$drate, "%. Since we will hire ", input$nadd, " new employees from a large selection pool each year, and the new procedure is expected to be used for at least ", input$pyears," years, implementing the new program is expected to cost our company ", costAdj(), " per year.")
     staff3 <- paste0("We found that opportunity cost is also affected by employee flows. When employees selected through the program enter and exit our company, the costs and benefits associated with the program change over time. Our research shows that employees selected using this program are expected to stay with the company an average of ", input$period, " years. This means that when we do not hire using this procedure, the opportunity cost associated with each employee is ", utilityAdjPer(), " or ", utilityAdjPerYear(), " per year they stay. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total opportunity cost of ", utilityAdj(), ".")
@@ -714,6 +970,7 @@ main_server <- function(input, output, session) {
       staff3
     })
     
+    #assign global variables to local variables
     elo1 <- elo()
     eln1 <- eln()
     elmo1 <- elmo()
@@ -723,6 +980,7 @@ main_server <- function(input, output, session) {
     eto1 <- eto()
     etn1 <- etn()
     
+    #create expectancy chart used in pdf export
     plot_data <- reactive({
       bar_data <- data.frame(
         Quartile = rep(c("Bottom 25%", "Lower Middle 25%", "Upper Middle 25%", "Top 25%"), each = 2),
@@ -760,6 +1018,7 @@ main_server <- function(input, output, session) {
       return(p + geom_text(aes(label = paste0(Probability, "%")), vjust = -0.5, size = 4, position = position_dodge(width = 0.9)))
     })
     
+    #pdf export
     output$download_pdf <- downloadHandler(
       filename = function() {
         "staffing_report.pdf"
@@ -828,8 +1087,1092 @@ main_server <- function(input, output, session) {
     
   })
   
-  #Training Utility
+###Monte Carlo###
+observeEvent(input$monteGo, {
+  showModal(modalDialog("Please wait while the analysis completes.",
+                        easyClose = FALSE,
+                        footer = NULL))
+  set.seed(input$seed)
+  ##### Step 1: Build basic utility formula parameters (adjustment 0 in Sturman table 1) #####
+  # Define the population of parameters to randomly sample from
+  t = runif(10000, input$t1, input$t2)                               # expected tenure of staying in years
+  n = runif(10000, log(input$n1), log(input$n2))       # Create a sequence from 1 to 1100 in increments of 1 for n         # 1-50 applicants per hire
+  select = runif(10000, input$sel1, input$sel2)          # for example, from 0.01 to 1 in increments of 0.01
+  sdy = runif(10000, input$sdy1, input$sdy2)            # standard deviation of job performance value
+  if(input$costm1 == 0){
+    cost = runif(10000, 0, log(input$costm2))}
+  else{
+    cost = runif(10000, log(input$costm1), log(input$costm2))
+  }    # cost per applicant of operating the new selection program
+  r1 = runif(10000, input$r1, input$r2)            # operational validity of the new selection program
+  utility_data <- data.frame(
+    t = t,
+    n = exp(n),
+    select = 1/select,
+    sdy = sdy,
+    cost = exp(cost),
+    r1 = r1
+  )
   
+  
+  utility_data$unadjusted_cost <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    cost <- as.numeric(row["cost"])
+    select <- as.numeric(row["select"])
+    return(as.numeric(round(n * cost / select, 0)))
+  })
+  
+  utility_data$unadjusted_utility <- apply(utility_data, 1, function(row){
+    t <- as.numeric(row["t"])
+    n <- as.numeric(row["n"])
+    select <- as.numeric(row["select"])
+    r1 <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    unadjusted_cost <- as.numeric(row["unadjusted_cost"])
+    return(as.numeric((t * n * iopsych::ux(select) * r1 * sdy) - unadjusted_cost))
+  })
+  
+  # Create a data frame for the plot
+  unadjusted_utility_df <- data.frame(Unadjusted_Utility_Total = utility_data$unadjusted_utility)
+  
+  # Calculate density
+  density_df_un <- data.frame(x = density(unadjusted_utility_df$Unadjusted_Utility_Total)$x,
+                           y = density(unadjusted_utility_df$Unadjusted_Utility_Total)$y)
+
+  density_df_un$group <- "Line 1"
+  
+  ##### Step 2: Account for # Economic adjustments (adjustment 1 in Sturman table 1).  #####
+  # Variables for adjustment
+  i = runif(10000, input$i1, input$i2)          # discount rate
+  tax = runif(10000, input$tax1, input$tax2)        # marginal tax rate
+  vc = runif(10000, input$vc1, input$vc2)          # variable costs
+  
+  # Place these values into the dataset that we built. Sample random values for each row in the dataset
+  utility_data$i <- i
+  utility_data$tax <- tax
+  utility_data$vc <- vc
+  
+  # build adjustment formula for econ
+  adjusted_utility_econ <- function(n, x2, r1, uxs, sdy, vc, tax, sr, cost, i, t) {
+    return ((n*x2*r1*uxs*sdy*(1-vc)*(1-tax))-((n/sr)*cost*(1-tax)))
+  }
+  
+  # compute adjusted utility for each row
+  utility_data$adjusted_utility_econ <- apply(utility_data, 1, function(row) {
+    n <- as.numeric(row["n"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    t <- as.numeric(row["t"])
+    r1 <- as.numeric(row["r1"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    x2 = (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    uxs = iopsych::ux(sr)
+    return(as.numeric(adjusted_utility_econ(n, x2, r1, uxs, sdy, vc, tax, sr, cost, i, t)))
+  })
+  
+  # Create a data frame for the plot
+ adjusted_utility_df_econ <- data.frame(Adjusted_Utility_Total_econ = utility_data$adjusted_utility_econ)
+  
+  # Calculate density
+  density_df_econ <- data.frame(x = density(adjusted_utility_df_econ$Adjusted_Utility_Total_econ)$x,
+                              y = density(adjusted_utility_df_econ$Adjusted_Utility_Total_econ)$y)
+  
+  density_df_econ$group <- "Line 2"
+  
+  #compute effect
+  utility_data$percent_decrease_econ <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  # View the first few rows of the updated dataset
+  mean.econ <- mean(utility_data$percent_decrease_econ)
+  median.econ <- median(utility_data$percent_decrease_econ)
+  
+  ##### Step 3: Account for # Multiple Devices (adjustment 5 in Sturman table 1).  #####
+  
+  incremental_r = runif(10000, input$ir1, input$ir2)
+  utility_data$incremental_r <- incremental_r
+  utility <- function(n, t, r, sdy, sr, cost) {
+    return(n*t*r*iopsych::ux(sr)*sdy-round((n/sr)*cost, 0))
+  }
+  
+  #compute adjusted utility for multiple devices
+  utility_data$adjusted_utility_mult <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    return(as.numeric(utility(n, t, r, sdy, sr, cost)))
+  })
+  
+  #compute effect
+  utility_data$percent_decrease_mult <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_mult"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.mult <- mean(utility_data$percent_decrease_mult)
+  median.mult <- median(utility_data$percent_decrease_mult)
+  
+  ##### Step 4: Account for # Deviations from Top-Down Hiring (adjustment 6 in Sturman table 1).  #####
+  pa <- runif(10000, input$pa1, input$pa2) # initial acceptance rate
+  bxy <- runif(10000, input$bxy1, input$bxy2) # correlation between acceptance and performance
+  utility_data$initial_accept <- pa
+  utility_data$perf_corr <- bxy
+  utility.topdown <- function(n, t, r, pa, bxy, sdy, sr, cost) {
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    z <- (pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n
+    return(n*t*r*z*sdy-round((n/sr)*cost, 0))
+  }
+  
+  #compute adjusted utility for deviations from top down hiring
+  
+  utility_data$adjusted_utility_topdown <-  apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    return(as.numeric(utility.topdown(n, t, r, pa, bxy, sdy, sr, cost)))
+  })
+  
+  #compute effect
+  utility_data$decrease_topdown <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_topdown"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.topdown <- mean(utility_data$decrease_topdown)
+  median.topdown <- median(utility_data$decrease_topdown)
+  
+  ##### Step 5: Account for # Probationary Period (adjustment 4 in Sturman table 1).  #####
+  
+  rc <- runif(10000, input$rc1, input$rc2) # cutoff score
+  utility_data$cutoff_score <- rc
+  
+  utility.probation <- function(n, t, r, sr, sdy, rc, cost) {
+    xc <- qnorm(1-sr)
+    PHI1.1 <- (xc-r*rc)/sqrt(1-r^2)
+    PHI1.2 <- (rc-r*xc)/sqrt(1-r^2)
+    PHI2.corr <- matrix(c(1, r, r, 1), nrow = 2)
+    mur.xcrc <- (dnorm(rc)*pnorm(PHI1.1, lower.tail = FALSE)+r*dnorm(xc)*pnorm(PHI1.2, lower.tail = FALSE))/pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)
+    sp <- pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)/pnorm(xc, lower.tail = FALSE)
+    so <- pnorm(rc, lower.tail = FALSE)
+    mur.rc <- dnorm(rc)/pnorm(rc, lower.tail = FALSE)
+    return((n*sdy*r*ux(sr)+(t-1)*n*sp*sdy*mur.xcrc-(n/sr)*cost)-((t-1)*n*sdy*so*mur.rc))
+  }
+  
+  utility_data$adjusted_utility_probation <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    rc <- as.numeric(row["cutoff_score"])
+    return(as.numeric(utility.probation(n,t,r,sr,sdy,rc,cost)))
+  })
+  
+  #compute effect
+  utility_data$decrease_probation <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_probation"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.probation <- mean(utility_data$decrease_probation)
+  median.probation <- median(utility_data$decrease_probation)
+  
+  ##### Step 6: Account for # Employee Flows (adjustment 2 in Sturman table 1).  #####
+  pto <- runif(10000, input$pto1, input$pto2) # turnover probability
+  corrto <- runif(10000, input$corrto1, input$corrto2) # turnover performance correlation
+  
+  utility_data$turnover_probability <- pto
+  utility_data$performance_correlation_turnover <- corrto
+  
+  utility.flow <- function(n, t, r, sdy, pto, corrto, sr, cost){
+    num_years <- seq(1, t)
+    n_added <- c(rep(n, 1), rep(0, t - 1))
+    n_turn <- c(rep(0, 1), rep((n*pto)/t, t-1))
+    n_cum <- cumsum(n_added - n_turn)
+    zbarx <- c(rep(ux(sr), 1), rep(ux(sr)+corrto*ux(1-pto), t-1))
+    
+    #Financially Adjusted Costs of Program in period (year)
+    c_adj <- (n_added / sr) * cost
+    unadjusted_utility <- n_cum * r * zbarx * sdy
+    
+    adjusted_utility <- unadjusted_utility - c_adj
+    adjusted_utility <- sum(round(adjusted_utility, 0))
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_flow <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    return(as.numeric(utility.flow(n, t, r, sdy, pto, corrto, sr, cost)))
+  })
+  
+  #compute effect
+  utility_data$decrease_flow <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_flow"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.flow <- mean(utility_data$decrease_flow)
+  median.flow <- median(utility_data$decrease_flow)
+  
+  ##### Step 7: Account for # Temporal Validity (adjustment 2 in Sturman table 1). #####
+  
+  stab <- runif(10000, input$stab1, input$stab2) #stability of performance
+  utility_data$performance_stability <- stab
+  
+  utility_data$adjusted_utility_temp <- apply(utility_data, 1, function(row){
+    t <- as.numeric(row["t"])
+    n <- as.numeric(row["n"])
+    select <- as.numeric(row["select"])
+    r1 <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    unadjusted_cost <- as.numeric(row["unadjusted_cost"])
+    stab <- as.numeric(row["performance_stability"])
+    return(as.numeric((t * n * stab * ux(select) * r1 * sdy) - unadjusted_cost))
+  })
+  
+  #compute effect
+  utility_data$decrease_temp <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_temp"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.temp <- mean(utility_data$decrease_temp)
+  median.temp <- median(utility_data$decrease_temp)
+  
+  #economic variables + multiple devices
+  
+  utility_data$adjusted_utility_econ_mult <- apply(utility_data, 1, function(row) {
+    n <- as.numeric(row["n"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    t <- as.numeric(row["t"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    r1 <- as.numeric(row["incremental_r"])
+    x2 = (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    uxs = ux(sr)
+    return(as.numeric(adjusted_utility_econ(n, x2, r1, uxs, sdy, vc, tax, sr, cost, i, t)))
+  })
+  
+  # Create a data frame for the plot
+  adjusted_utility_df_econmult <- data.frame(Adjusted_Utility_Total_econmult = utility_data$adjusted_utility_econ_mult)
+  
+  # Calculate density
+  density_df_econmult <- data.frame(x = density(adjusted_utility_df_econmult$Adjusted_Utility_Total_econmult)$x,
+                                y = density(adjusted_utility_df_econmult$Adjusted_Utility_Total_econmult)$y)
+  
+  density_df_econmult$group <- "Line 3"
+  
+  #compute effect
+  utility_data$decrease_econmult <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over1 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ"]-row["adjusted_utility_econ_mult"])/abs(row["adjusted_utility_econ"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmult <- mean(utility_data$decrease_econmult)
+  median.econmult <- median(utility_data$decrease_econmult)
+  mean.over1 <- mean(utility_data$decrease_over1)
+  median.over1 <- median(utility_data$decrease_over1)
+  
+  #economic variables + temporal validity
+  
+  utility_data$adjusted_utility_econ_tv <- apply(utility_data, 1, function(row) {
+    n <- as.numeric(row["n"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    t <- as.numeric(row["t"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    r1 <- as.numeric(row["r1"])
+    x2 = (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    stab = as.numeric(row["performance_stability"])
+    uxs = ux(sr)*stab
+    return(as.numeric(adjusted_utility_econ(n, x2, r1, uxs, sdy, vc, tax, sr, cost, i, t)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econtv <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_tv"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over1.2 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ"]-row["adjusted_utility_econ_tv"])/abs(row["adjusted_utility_econ"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econtv <- mean(utility_data$decrease_econtv)
+  median.econtv <- median(utility_data$decrease_econtv)
+  mean.over1.2 <- mean(utility_data$decrease_over1.2)
+  median.over1.2 <- median(utility_data$decrease_over1.2)
+  
+  #economic variables + top down hiring
+  
+  utility.econtd <- function(n, t, r, sdy, sr, cost, pa, bxy, i, tax, vc){
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    z <- (pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n
+    x2 <- (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    return ((n*x2*r*z*sdy*(1-vc)*(1-tax))-((n/sr)*cost*(1-tax)))
+  }
+  
+  utility_data$adjusted_utility_econ_td <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    return(utility.econtd(n, t, r, sdy, sr, cost, pa, bxy, i, tax, vc))
+  })
+  
+  #compute effect
+  utility_data$decrease_econ_td <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_td"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over1.3 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ"]-row["adjusted_utility_econ_td"])/abs(row["adjusted_utility_econ"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econtd <- mean(utility_data$decrease_econ_td)
+  median.econtd <- median(utility_data$decrease_econ_td)
+  mean.over1.3 <- mean(utility_data$decrease_over1.3)
+  median.over1.3 <- median(utility_data$decrease_over1.3)
+  
+  #economic variables + probation
+  
+  utility.econ.probation <- function(n, t, r, sr, sdy, rc, cost, i, vc, tax) {
+    xc <- qnorm(1-sr)
+    PHI1.1 <- (xc-r*rc)/sqrt(1-r^2)
+    PHI1.2 <- (rc-r*xc)/sqrt(1-r^2)
+    PHI2.corr <- matrix(c(1, r, r, 1), nrow = 2)
+    mur.xcrc <- (dnorm(rc)*pnorm(PHI1.1, lower.tail = FALSE)+r*dnorm(xc)*pnorm(PHI1.2, lower.tail = FALSE))/pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)
+    sp <- pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)/pnorm(xc, lower.tail = FALSE)
+    so <- pnorm(rc, lower.tail = FALSE)
+    mur.rc <- dnorm(rc)/pnorm(rc, lower.tail = FALSE)
+    x1 <- 1/(1+i)
+    x2 <- (1/(1+i)*(1-(1/(1+i)^(t-1))))/(1-(1/(1+i)))
+    return((n*x1*sdy*r*ux(sr)*(1-tax)*(1-vc)+x2*n*sp*sdy*mur.xcrc*(1-vc)*(1-tax)-(n/sr)*cost*(1-tax))-(x2*n*sdy*so*mur.rc*(1-vc)*(1-tax)))
+  }
+  
+  utility_data$adjusted_utility_econ_prob <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    rc <- as.numeric(row["cutoff_score"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    return(as.numeric(utility.econ.probation(n,t,r,sr,sdy,rc,cost, i, vc, tax)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econ_prob <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_prob"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over1.4 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ"]-row["adjusted_utility_econ_prob"])/abs(row["adjusted_utility_econ"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econprob <- mean(utility_data$decrease_econ_prob)
+  median.econprob <- median(utility_data$decrease_econ_prob)
+  mean.over1.4 <- mean(utility_data$decrease_over1.4)
+  median.over1.4 <- median(utility_data$decrease_over1.4)
+  
+  #economic variables + employee flows
+  
+  utility.econ.flow <- function(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax){
+    num_years <- seq(1, t)
+    n_added <- c(rep(n, 1), rep(0, t - 1))
+    n_turn <- c(rep(0, 1), rep((n*pto)/t, t-1))
+    n_cum <- cumsum(n_added - n_turn)
+    zbarx <- c(rep(ux(sr), 1), rep(ux(sr)+corrto*ux(1-pto), t-1))
+    discount_factor <- 1/(1 + i)^num_years
+    
+    #Financially Adjusted Costs of Program in period (year)
+    c_adj <- (n_added / sr) * cost * (1 - tax) * (1/(1 + i)^(num_years - 1))
+    unadjusted_utility <- n_cum * discount_factor * r * zbarx * sdy * (1 - vc) * (1 - tax)
+    
+    adjusted_utility <- unadjusted_utility - c_adj
+    adjusted_utility <- sum(round(adjusted_utility, 0))
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_econ_flow <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["r1"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    return(as.numeric(utility.econ.flow(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econ_flow <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_flow"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over1.5 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ"]-row["adjusted_utility_econ_flow"])/abs(row["adjusted_utility_econ"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econflow <- mean(utility_data$decrease_econ_flow)
+  median.econflow <- median(utility_data$decrease_econ_flow)
+  mean.over1.5 <- mean(utility_data$decrease_over1.5)
+  median.over1.5 <- median(utility_data$decrease_over1.5)
+  
+  #economic variables + multiple devices + temporal validity
+  
+  utility_data$adjusted_utility_econ_mult_tv <- apply(utility_data, 1, function(row) {
+    n <- as.numeric(row["n"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    t <- as.numeric(row["t"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    r1 <- as.numeric(row["incremental_r"])
+    x2 = (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    stab = as.numeric(row["performance_stability"])
+    uxs = ux(sr)*stab
+    return(as.numeric(adjusted_utility_econ(n, x2, r1, uxs, sdy, vc, tax, sr, cost, i, t)))
+  })
+  
+  # Create a data frame for the plot
+  adjusted_utility_df_econmulttv <- data.frame(Adjusted_Utility_Total_econmulttv = utility_data$adjusted_utility_econ_mult_tv)
+  
+  # Calculate density
+  density_df_econmulttv <- data.frame(x = density(adjusted_utility_df_econmulttv$Adjusted_Utility_Total_econmulttv)$x,
+                                    y = density(adjusted_utility_df_econmulttv$Adjusted_Utility_Total_econmulttv)$y)
+  
+  density_df_econmulttv$group <- "Line 4"
+  
+  #compute effect
+  utility_data$decrease_econmulttv <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over2 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult"]-row["adjusted_utility_econ_mult_tv"])/abs(row["adjusted_utility_econ_mult"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttv <- mean(utility_data$decrease_econmulttv)
+  median.econmulttv <- median(utility_data$decrease_econmulttv)
+  mean.over2 <- mean(utility_data$decrease_over2)
+  median.over2 <- median(utility_data$decrease_over2)
+  
+  #economic variables + multiple devices + top down
+  
+  utility_data$adjusted_utility_econ_mult_td <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    return(utility.econtd(n, t, r, sdy, sr, cost, pa, bxy, i, tax, vc))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmulttd <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_td"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over2.1 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult"]-row["adjusted_utility_econ_mult_td"])/abs(row["adjusted_utility_econ_mult"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttd <- mean(utility_data$decrease_econmulttd)
+  median.econmulttd <- median(utility_data$decrease_econmulttd)
+  mean.over2.1 <- mean(utility_data$decrease_over2.1)
+  median.over2.1 <- median(utility_data$decrease_over2.1)
+  
+  #economic variables + multiple devices + probation
+  
+  utility_data$adjusted_utility_econ_mult_prob <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    rc <- as.numeric(row["cutoff_score"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    return(as.numeric(utility.econ.probation(n,t,r,sr,sdy,rc,cost, i, vc, tax)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmultprob <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_prob"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over2.2 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult"]-row["adjusted_utility_econ_mult_prob"])/abs(row["adjusted_utility_econ_mult"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmultprob <- mean(utility_data$decrease_econmultprob)
+  median.econmultprob <- median(utility_data$decrease_econmultprob)
+  mean.over2.2 <- mean(utility_data$decrease_over2.2)
+  median.over2.2 <- median(utility_data$decrease_over2.2)
+  
+  #economic variables + multiple devices + employee flows
+  
+  utility.econ.flow <- function(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax){
+    num_years <- seq(1, t)
+    n_added <- c(rep(n, 1), rep(0, t - 1))
+    n_turn <- c(rep(0, 1), rep((n*pto)/t, t-1))
+    n_cum <- cumsum(n_added - n_turn)
+    zbarx <- c(rep(ux(sr), 1), rep(ux(sr)+corrto*ux(1-pto), t-1))
+    discount_factor <- 1/(1 + i)^num_years
+    
+    #Financially Adjusted Costs of Program in period (year)
+    c_adj <- (n_added / sr) * cost * (1 - tax) * (1/(1 + i)^(num_years - 1))
+    unadjusted_utility <- n_cum * discount_factor * r * zbarx * sdy * (1 - vc) * (1 - tax)
+    
+    adjusted_utility <- unadjusted_utility - c_adj
+    adjusted_utility <- sum(round(adjusted_utility, 0))
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_econ_mult_flow <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    return(as.numeric(utility.econ.flow(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmultflow <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_flow"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over2.3 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult"]-row["adjusted_utility_econ_mult_flow"])/abs(row["adjusted_utility_econ_mult"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmultflow <- mean(utility_data$decrease_econmultflow)
+  median.econmultflow <- median(utility_data$decrease_econmultflow)
+  mean.over2.3 <- mean(utility_data$decrease_over2.3)
+  median.over2.3 <- median(utility_data$decrease_over2.3)
+  
+  #economic variables + multiple devices + temporal validity + top down
+  
+  utility.econtdtv <- function(n, t, r, sdy, sr, cost, pa, bxy, i, tax, vc, stab){
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    z <- (pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n
+    x2 <- (1/(1+i)*(1-(1/(1+i)^t)))/(1-(1/(1+i)))
+    return ((n*x2*r*stab*z*sdy*(1-vc)*(1-tax))-((n/sr)*cost*(1-tax)))
+  }
+  
+  utility_data$adjusted_utility_econ_mult_tv_td <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    stab <- as.numeric(row["performance_stability"])
+    return(utility.econtdtv(n, t, r, sdy, sr, cost, pa, bxy, i, tax, vc, stab))
+  })
+  
+  # Create a data frame for the plot
+  adjusted_utility_df_econmulttvtd <- data.frame(Adjusted_Utility_Total_econmulttvtd = utility_data$adjusted_utility_econ_mult_tv_td)
+  
+  # Calculate density
+  density_df_econmulttvtd <- data.frame(x = density(adjusted_utility_df_econmulttvtd$Adjusted_Utility_Total_econmulttvtd)$x,
+                                      y = density(adjusted_utility_df_econmulttvtd$Adjusted_Utility_Total_econmulttvtd)$y)
+  
+  density_df_econmulttvtd$group <- "Line 5"
+  
+  #compute effect
+  utility_data$decrease_econmulttvtd <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv_td"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over3 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv"]-row["adjusted_utility_econ_mult_tv_td"])/abs(row["adjusted_utility_econ_mult_tv"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttvtd <- mean(utility_data$decrease_econmulttvtd)
+  median.econmulttvtd <- median(utility_data$decrease_econmulttvtd)
+  mean.over3 <- mean(utility_data$decrease_over3)
+  median.over3 <- median(utility_data$decrease_over3)
+  
+  #economic variables + multiple devices + temporal validity + prob
+  
+  utility.econ.tv.probation <- function(n, t, r, sr, sdy, rc, cost, i, vc, tax, stab) {
+    xc <- qnorm(1-sr)
+    PHI1.1 <- (xc-r*rc)/sqrt(1-r^2)
+    PHI1.2 <- (rc-r*xc)/sqrt(1-r^2)
+    PHI2.corr <- matrix(c(1, r, r, 1), nrow = 2)
+    mur.xcrc <- (dnorm(rc)*pnorm(PHI1.1, lower.tail = FALSE)+r*dnorm(xc)*pnorm(PHI1.2, lower.tail = FALSE))/pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)
+    sp <- pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)/pnorm(xc, lower.tail = FALSE)
+    so <- pnorm(rc, lower.tail = FALSE)
+    mur.rc <- dnorm(rc)/pnorm(rc, lower.tail = FALSE)
+    x1 <- 1/(1+i)
+    x2 <- (1/(1+i)*(1-(1/(1+i)^(t-1))))/(1-(1/(1+i)))
+    return((n*x1*stab*sdy*r*ux(sr)*(1-tax)*(1-vc)+x2*n*sp*stab*sdy*mur.xcrc*(1-vc)*(1-tax)-(n/sr)*cost*(1-tax))-(x2*n*stab*sdy*so*mur.rc*(1-vc)*(1-tax)))
+  }
+  
+  utility_data$adjusted_utility_econ_mult_tv_prob <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    rc <- as.numeric(row["cutoff_score"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    stab <- as.numeric(row["performance_stability"])
+    return(as.numeric(utility.econ.tv.probation(n, t, r, sr, sdy, rc, cost, i, vc, tax, stab)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmulttvprob <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv_prob"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over3.1 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv"]-row["adjusted_utility_econ_mult_tv_prob"])/abs(row["adjusted_utility_econ_mult_tv"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttvprob <- mean(utility_data$decrease_econmulttvprob)
+  median.econmulttvprob <- median(utility_data$decrease_econmulttvprob)
+  mean.over3.1 <- mean(utility_data$decrease_over3.1)
+  median.over3.1 <- median(utility_data$decrease_over3.1)
+  
+  #economic variables + multiple devices + temporal validity + flows
+  
+  utility.econ.tv.flow <- function(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab){
+    num_years <- seq(1, t)
+    n_added <- c(rep(n, 1), rep(0, t - 1))
+    n_turn <- c(rep(0, 1), rep((n*pto)/t, t-1))
+    n_cum <- cumsum(n_added - n_turn)
+    zbarx <- c(rep(ux(sr), 1), rep(ux(sr)+corrto*ux(1-pto), t-1))
+    discount_factor <- 1/(1 + i)^num_years
+    
+    #Financially Adjusted Costs of Program in period (year)
+    c_adj <- (n_added / sr) * cost * (1 - tax) * (1/(1 + i)^(num_years - 1))
+    unadjusted_utility <- n_cum * discount_factor * r * zbarx * sdy * (1 - vc) * (1 - tax)
+    
+    adjusted_utility <- stab*unadjusted_utility - c_adj
+    adjusted_utility <- sum(round(adjusted_utility, 0))
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_econ_mult_tv_flow <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    stab <- as.numeric(row["performance_stability"])
+    return(as.numeric(utility.econ.tv.flow(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmulttvflow <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv_flow"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over3.2 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv"]-row["adjusted_utility_econ_mult_tv_flow"])/abs(row["adjusted_utility_econ_mult_tv"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttvflow <- mean(utility_data$decrease_econmulttvflow)
+  median.econmulttvflow <- median(utility_data$decrease_econmulttvflow)
+  mean.over3.2 <- mean(utility_data$decrease_over3.2)
+  median.over3.2 <- median(utility_data$decrease_over3.2)
+  
+  #economic variables + multiple devices + temporal validity + top down + probation
+  
+  utility.econ.mult.tv.td.prob <- function(n, t, r, pa, bxy, rc, sdy, sr, cost, i, tax, vc, stab){
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    xc <- qnorm(1-sr)
+    xc.pa <- qnorm(1-pa)
+    xc.p2 <- qnorm(1-p2)
+    PHI1.1 <- (xc-r*rc)/sqrt(1-r^2)
+    PHI1.2 <- (rc-r*xc)/sqrt(1-r^2)
+    PHI1.1.pa <- (xc.pa-r*rc)/sqrt(1-r^2)
+    PHI1.2.pa <- (rc-r*xc.pa)/sqrt(1-r^2)
+    PHI1.1.p2 <- (xc.p2-r*rc)/sqrt(1-r^2)
+    PHI1.2.p2 <- (rc-r*xc.p2)/sqrt(1-r^2)
+    PHI2.corr <- matrix(c(1, r, r, 1), nrow = 2)
+    mur.xcrc <- (dnorm(rc)*pnorm(PHI1.1, lower.tail = FALSE)+r*dnorm(xc)*pnorm(PHI1.2, lower.tail = FALSE))/pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)
+    mur.xcrc.pa <- (dnorm(rc)*pnorm(PHI1.1.pa, lower.tail = FALSE)+r*dnorm(xc.pa)*pnorm(PHI1.2.pa, lower.tail = FALSE))/pmvnorm(c(xc.pa, rc), Inf, corr = PHI2.corr)
+    mur.xcrc.p2 <- (dnorm(rc)*pnorm(PHI1.1.p2, lower.tail = FALSE)+r*dnorm(xc.p2)*pnorm(PHI1.2.p2, lower.tail = FALSE))/pmvnorm(c(xc.p2, rc), Inf, corr = PHI2.corr)
+    sp <- pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)/pnorm(xc, lower.tail = FALSE)
+    sp.p2 <- pmvnorm(c(xc.p2, rc), Inf, corr = PHI2.corr)/pnorm(xc.p2, lower.tail = FALSE)
+    so <- pnorm(rc, lower.tail = FALSE)
+    mur.rc <- dnorm(rc)/pnorm(rc, lower.tail = FALSE)
+    z <- (pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n
+    z.mod <- sp*(pa*mur.xcrc+pa*bxy*ux(pa)*r)+sp.p2*((p2/sr)*mur.xcrc.p2-mur.xcrc)
+    x1 <- 1/(1+i)
+    x2 <- (1/(1+i)*(1-(1/(1+i)^(t-1))))/(1-(1/(1+i)))
+    return((n*x1*stab*sdy*r*z*(1-tax)*(1-vc)+x2*n*sdy*stab*z.mod*(1-tax)*(1-vc)-(n/sr)*cost*(1-tax))-(x2*n*sdy*so*stab*mur.rc*(1-tax)*(1-vc)))
+  }
+  
+  utility_data$adjusted_utility_econ_mult_tv_td_prob <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    rc <- as.numeric(row["cutoff_score"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    stab <- as.numeric(row["performance_stability"])
+    return(as.numeric(utility.econ.mult.tv.td.prob(n, t, r, pa, bxy, rc, sdy, sr, cost, i, tax, vc, stab)))
+  })
+  
+  # Create a data frame for the plot
+  adjusted_utility_df_econmulttvtdprob <- data.frame(Adjusted_Utility_Total_econmulttvtdprob = utility_data$adjusted_utility_econ_mult_tv_td_prob)
+  
+  # Calculate density
+  density_df_econmulttvtdprob <- data.frame(x = density(adjusted_utility_df_econmulttvtdprob$Adjusted_Utility_Total_econmulttvtdprob)$x,
+                                        y = density(adjusted_utility_df_econmulttvtdprob$Adjusted_Utility_Total_econmulttvtdprob)$y)
+  
+  density_df_econmulttvtdprob$group <- "Line 6"
+  
+  #compute effect
+  utility_data$decrease_econmulttvtdprob <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv_td_prob"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over4 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv_td"]-row["adjusted_utility_econ_mult_tv_td_prob"])/abs(row["adjusted_utility_econ_mult_tv_td"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttvtdprob <- mean(utility_data$decrease_econmulttvtdprob)
+  median.econmulttvtdprob <- median(utility_data$decrease_econmulttvtdprob)
+  mean.over4 <- mean(utility_data$decrease_over4)
+  median.over4 <- median(utility_data$decrease_over4)
+  
+  #economic variables + multiple devices + temporal validity + top down + flow
+  
+  utility.econ.tv.td.flow <- function(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab, pa, bxy){
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    num_years <- seq(1, t)
+    n_added <- c(rep(n, 1), rep(0, t - 1))
+    n_turn <- c(rep(0, 1), rep((n*pto)/t, t-1))
+    n_cum <- cumsum(n_added - n_turn)
+    zbarx <- c(rep((pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n, 1), rep(((pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n)+corrto*ux(1-pto), t-1))
+    discount_factor <- 1/(1 + i)^num_years
+    
+    #Financially Adjusted Costs of Program in period (year)
+    c_adj <- (n_added / sr) * cost * (1 - tax) * (1/(1 + i)^(num_years - 1))
+    unadjusted_utility <- n_cum * discount_factor * r * zbarx * sdy * (1 - vc) * (1 - tax)
+    
+    adjusted_utility <- stab*unadjusted_utility - c_adj
+    adjusted_utility <- sum(round(adjusted_utility, 0))
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_econ_mult_tv_td_flow <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    stab <- as.numeric(row["performance_stability"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    return(as.numeric(utility.econ.tv.td.flow(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab, pa, bxy)))
+  })
+  
+  #compute effect
+  utility_data$decrease_econmulttvtdflow <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_econ_mult_tv_td_flow"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over4.1 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv_td"]-row["adjusted_utility_econ_mult_tv_td_flow"])/abs(row["adjusted_utility_econ_mult_tv_td"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.econmulttvtdflow <- mean(utility_data$decrease_econmulttvtdflow)
+  median.econmulttvtdflow <- median(utility_data$decrease_econmulttvtdflow)
+  mean.over4.1 <- mean(utility_data$decrease_over4.1)
+  median.over4.1 <- median(utility_data$decrease_over4.1)
+  
+  # final adjustment
+  
+  utility.complete <- function(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab, pa, bxy, rc){
+    p2 <- ((n-(pa*n))/(n/sr))+sr
+    if (p2 > 1){
+      p2 <- 1
+    }
+    xc <- qnorm(1-sr)
+    xc.pa <- qnorm(1-pa)
+    xc.p2 <- qnorm(1-p2)
+    PHI1.1 <- (xc-r*rc)/sqrt(1-r^2)
+    PHI1.2 <- (rc-r*xc)/sqrt(1-r^2)
+    PHI1.1.pa <- (xc.pa-r*rc)/sqrt(1-r^2)
+    PHI1.2.pa <- (rc-r*xc.pa)/sqrt(1-r^2)
+    PHI1.1.p2 <- (xc.p2-r*rc)/sqrt(1-r^2)
+    PHI1.2.p2 <- (rc-r*xc.p2)/sqrt(1-r^2)
+    PHI2.corr <- matrix(c(1, r, r, 1), nrow = 2)
+    mur.xcrc <- (dnorm(rc)*pnorm(PHI1.1, lower.tail = FALSE)+r*dnorm(xc)*pnorm(PHI1.2, lower.tail = FALSE))/pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)
+    mur.xcrc.pa <- (dnorm(rc)*pnorm(PHI1.1.pa, lower.tail = FALSE)+r*dnorm(xc.pa)*pnorm(PHI1.2.pa, lower.tail = FALSE))/pmvnorm(c(xc.pa, rc), Inf, corr = PHI2.corr)
+    mur.xcrc.p2 <- (dnorm(rc)*pnorm(PHI1.1.p2, lower.tail = FALSE)+r*dnorm(xc.p2)*pnorm(PHI1.2.p2, lower.tail = FALSE))/pmvnorm(c(xc.p2, rc), Inf, corr = PHI2.corr)
+    sp <- pmvnorm(c(xc, rc), Inf, corr = PHI2.corr)/pnorm(xc, lower.tail = FALSE)
+    sp.p2 <- pmvnorm(c(xc.p2, rc), Inf, corr = PHI2.corr)/pnorm(xc.p2, lower.tail = FALSE)
+    so <- pnorm(rc, lower.tail = FALSE)
+    mur.rc <- dnorm(rc)/pnorm(rc, lower.tail = FALSE)
+    z <- (pa*n*ux(sr)+n*(bxy)*dnorm(qnorm(1-pa))+(n/sr)*(dnorm(qnorm(1 - p2))-(dnorm(qnorm(1 - sr)))))/n
+    z.mod <- sp*(pa*mur.xcrc+pa*bxy*ux(pa)*r)+sp.p2*((p2/sr)*mur.xcrc.p2-mur.xcrc)
+    x1 <- 1/(1+i)
+    #Financially Adjusted Costs of Program in period (year)
+    a <- n*x1*stab*sdy*r*z*(1-tax)*(1-vc)
+    c <- (n/sr)*cost*(1-tax)
+    if (t>1){
+      num_years <- seq(1, t-1)
+      n_added <- c(rep(n, 1), rep(0, t - 2))
+      n_turn <- c(rep((n*pto)/t, t-1))
+      n_cum <- cumsum(n_added - n_turn)
+      zbarx <- c(rep((z.mod+corrto*ux(1-pto)*sp), t-1))
+      discount_factor <- 1/(1 + i)^(num_years+1)
+      b <- stab*n_cum * discount_factor * zbarx * sdy * (1 - vc) * (1 - tax)
+      utility_0 <- stab * n_cum * discount_factor * so * (mur.rc+corrto*ux(1-pto)) * sdy * (1 - vc) * (1 - tax)
+    }
+    else{
+      b <- 0
+      utility_0 <- 0
+    }
+    adjusted_utility <- a+sum(b)-c-sum(utility_0)
+    return(adjusted_utility)
+  }
+  
+  utility_data$adjusted_utility_final <- apply(utility_data, 1, function(row){
+    n <- as.numeric(row["n"])
+    t <- as.numeric(row["t"])
+    r <- as.numeric(row["incremental_r"])
+    sdy <- as.numeric(row["sdy"])
+    sr <- as.numeric(row["select"])
+    cost <- as.numeric(row["cost"])
+    pto <- as.numeric(row["turnover_probability"])
+    corrto <- as.numeric(row["performance_correlation_turnover"])
+    i <- as.numeric(row["i"])
+    tax <- as.numeric(row["tax"])
+    vc <- as.numeric(row["vc"])
+    stab <- as.numeric(row["performance_stability"])
+    pa <- as.numeric(row["initial_accept"])
+    bxy <- as.numeric(row["perf_corr"])
+    rc <- as.numeric(row["cutoff_score"])
+    return(as.numeric(utility.complete(n, t, r, sdy, pto, corrto, sr, cost, i, vc, tax, stab, pa, bxy, rc)))
+  })
+  
+  # Create a data frame for the plot
+  adjusted_utility_df_final <- data.frame(Adjusted_Utility_Total_final = utility_data$adjusted_utility_final)
+  
+  # Calculate density
+  density_df_final <- data.frame(x = density(adjusted_utility_df_final$Adjusted_Utility_Total_final)$x,
+                                            y = density(adjusted_utility_df_final$Adjusted_Utility_Total_final)$y)
+  
+  density_df_final$group <- "Line 7"
+  
+  #compute effect
+  utility_data$decrease_final <- apply(utility_data, 1, function(row){
+    change <- (row["unadjusted_utility"]-row["adjusted_utility_final"])/abs(row["unadjusted_utility"])
+    return(as.numeric(100*change))
+  })
+  
+  utility_data$decrease_over5 <- apply(utility_data, 1, function(row){
+    change <- (row["adjusted_utility_econ_mult_tv_td_prob"]-row["adjusted_utility_final"])/abs(row["adjusted_utility_econ_mult_tv_td_prob"])
+    return(as.numeric(100*change))
+  })
+  
+  mean.final <- mean(utility_data$decrease_final)
+  median.final <- median(utility_data$decrease_final)
+  mean.over5 <- mean(utility_data$decrease_over5)
+  median.over5 <- median(utility_data$decrease_over5)
+  
+  # Effect Table
+  table_2 <- data.frame(
+    net_effect_1 = c(paste0(round(-median.econ, 0), "%"), paste0(round(-mean.econ, 0), "%"), paste0(round(-median.mult, 0), "%"), paste0(round(-mean.mult, 0), "%"), paste0(round(-median.temp, 0), "%"), paste0(-round(mean.temp, 0), "%"),  paste0(round(-median.topdown, 0), "%"),
+                     paste0(round(-mean.topdown, 0), "%"), paste0(round(-median.probation, 0), "%"), paste0(round(-mean.probation, 0), "%"), paste0(round(-median.flow, 0), "%"),  paste0(round(-mean.flow, 0), "%")),
+    net_effect_2a = c("", "", paste0(round(-median.econmult, 0), "%"), paste0(round(-mean.econmult, 0), "%"), paste0(round(-median.econtv, 0), "%"), paste0(round(-mean.econtv, 0), "%"), paste0(round(-median.econtd, 0), "%"), paste0(round(-mean.econtd, 0), "%"), paste0(round(-median.econprob, 0), "%"), paste0(round(-mean.econprob, 0), "%"), paste0(round(-median.econflow, 0), "%"), paste0(round(-mean.econflow, 0), "%")),
+    over_prev_2b =c("", "", paste0(round(-median.over1, 0), "%"), paste0(round(-mean.over1, 0), "%"), paste0(round(-median.over1.2, 0), "%"), paste0(round(-mean.over1.2, 0), "%"), paste0(round(-median.over1.3, 0), "%"), paste0(round(-mean.over1.3, 0), "%"), paste0(round(-median.over1.4, 0), "%"), paste0(round(-mean.over1.4, 0), "%"), paste0(round(-median.over1.5, 0), "%"), paste0(round(-mean.over1.5, 0), "%")),
+    net_effect_3a = c("", "", "", "", paste0(round(-median.econmulttv, 0), "%"), paste0(round(-mean.econmulttv, 0), "%"), paste0(round(-median.econmulttd, 0), "%"), paste0(round(-mean.econmulttd, 0), "%"), paste0(round(-median.econmultprob, 0), "%"), paste0(round(-mean.econmultprob, 0), "%"), paste0(round(-median.econmultflow, 0), "%"), paste0(round(-mean.econmultflow, 0), "%")),
+    over_prev_3b =c("", "", "", "", paste0(round(-median.over2, 0), "%"), paste0(round(-mean.over2, 0), "%"), paste0(round(-median.over2.1, 0), "%"), paste0(round(-mean.over2.1, 0), "%"), paste0(round(-median.over2.2, 0), "%"), paste0(round(-mean.over2.2, 0), "%"), paste0(round(-median.over2.3, 0), "%"), paste0(round(-mean.over2.3, 0), "%")),
+    net_effect_4a = c("", "", "", "", "", "", paste0(round(-median.econmulttvtd, 0), "%"), paste0(round(-mean.econmulttvtd, 0), "%"), paste0(round(-median.econmulttvprob, 0), "%"), paste0(round(-mean.econmulttvprob, 0), "%"), paste0(round(-median.econmulttvflow, 0), "%"), paste0(round(-mean.econmulttvflow, 0), "%")),
+    over_prev_4b =c("", "", "", "", "", "", paste0(round(-median.over3, 0), "%"), paste0(round(-mean.over3, 0), "%"), paste0(round(-median.over3.1, 0), "%"), paste0(round(-mean.over3.1, 0), "%"), paste0(round(-median.over3.2, 0), "%"), paste0(round(-mean.over3.2, 0), "%")),
+    net_effect_5a = c("", "", "", "", "", "", "", "", paste0(round(-median.econmulttvtdprob, 0), "%"), paste0(round(-mean.econmulttvtdprob, 0), "%"), paste0(round(-median.econmulttvtdflow, 0), "%"), paste0(round(-mean.econmulttvtdflow, 0), "%")),
+    over_prev_5b =c("", "", "", "", "", "", "", "", paste0(round(-median.over4, 0), "%"), paste0(round(-mean.over4, 0), "%"), paste0(round(-median.over4.1, 0), "%"), paste0(round(-mean.over4.1, 0), "%")),
+    net_effect_6a = c("", "", "", "", "", "", "", "", "", "", paste0(round(-median.final, 0), "%"), paste0(round(-mean.final, 0), "%")),
+    over_prev_6b =c("", "", "", "", "", "", "", "", "", "", paste0(round(-median.over5, 0), "%"), paste0(round(-mean.over5, 0), "%"))
+  )
+  rownames(table_2) <- c("Economic Variables Median", "Economic Variables Mean", "Multiple Devices Median", "Multiple Devices Mean", "Temporal Validity Median", "Temporal Validity Mean", "Deviations from Top Down Hiring Median", "Deviations from Top Down Hiring Mean", "Probationary Period Median", "Probationary Period Mean", "Employee Flows Median", "Employee Flows Mean")
+  colnames(table_2) <- c("Net Effect1", "Net Effect2a", "Over Previous Modification2b", "Net Effect3a", "Over Previous Modification3b", "Net Effect4a", "Over Previous Modification4b", "Net Effect5a", "Over Previous Modification5b", "Net Effect6a", "Over Previous Modification6b")
+  output$sturman2 <- renderTable(table_2, rownames = TRUE, width = 1000)
+  
+  combined_df <- density_df_final
+  combined_df$Fill <- ifelse(combined_df$x < 0, "Negative", "Positive")
+  
+  density_plot <- ggplot(combined_df, aes(x = x, y = y)) + 
+    geom_area(aes(fill = Fill), alpha=0.4) +
+    scale_fill_manual(values = c("Negative" = "red", "Positive" = "green")) +
+    scale_x_continuous(labels = dollar_format2, breaks = extended_breaks(6)) +
+    labs(title = "",
+         x = "Return on Investment Total", 
+         y = "") +
+    theme_minimal() +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white"),
+          plot.title = element_text(hjust = 0),
+          plot.subtitle = element_text(hjust = 0, color = "black"),
+          plot.background = element_rect(fill = "white", linetype = "blank"),
+          axis.text.y = element_blank(),
+          axis.text.x = element_text(size = 17),
+          axis.title = element_text(size =18)) +
+    guides(fill="none")  # Remove legend
+  
+  output$density <- renderPlotly({
+    ggplotly(density_plot)
+  })
+  
+  # Calculate percentage of estimates that are negative
+  pct_negative <- round(sum(utility_data$adjusted_utility_final < 0) / length(utility_data$adjusted_utility_final) * 100, 2)
+  
+  # Calculate average utility estimate
+  avg_utility_estimate <- round(median(utility_data$adjusted_utility_final), 2)
+  
+  # get the positive value
+  avg_positive_utility <- median(utility_data[utility_data$adjusted_utility_final > 0, "adjusted_utility_final"])
+  medianform <- dollar_format2(avg_utility_estimate)
+  
+  output$medianmonte <- renderText(paste0("The median return on investment for these parameters is ", medianform, "."))
+  output$negmonte <- renderText(paste0(pct_negative, "% of return on investment outcomes were negative."))
+  
+  removeModal()
+  })
+  
+#Training Utility
+  
+  #toggles for Training/RODI
   observeEvent(input$selectPage1, {
     updateTabsetPanel(session, "pageTabs", selected = "Page 1")
   })
@@ -886,6 +2229,7 @@ main_server <- function(input, output, session) {
     # data frame
     df <- data.frame(x = x, y1 = y1, y2 = y2)
     
+    #create effect size graph
     gg <- ggplot(df, aes(x = x)) +
       geom_ribbon(aes(ymin = 0, ymax = y1), fill = "red", alpha = 0.3) +
       geom_ribbon(aes(ymin = 0, ymax = y2), fill = "blue", alpha = 0.3) +
@@ -915,7 +2259,7 @@ main_server <- function(input, output, session) {
         axis.ticks.y = element_blank()
       )
     
-    
+    #output for training
     if (option == "Training Program"){
       output$training_graph_1 <- renderPlot(gg +
                                               labs(
@@ -923,6 +2267,7 @@ main_server <- function(input, output, session) {
                                                 x = "Standardized Job Performance"
                                               ) +
                                               ggtitle(paste0("Figure 1\nWith an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less job performance than if enacted.")))
+      #PLain Text
       output$effectText <- renderText({
         paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
              With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
@@ -931,6 +2276,7 @@ main_server <- function(input, output, session) {
              from the trained group.")
       })
       
+      #export pdf
       output$effect_download <- downloadHandler(
         filename = function() {
           "expectancy.pdf"  
@@ -978,6 +2324,7 @@ main_server <- function(input, output, session) {
       
     }
     
+    #output for RODI
     else {
       output$training_graph_1 <- renderPlot(gg +
                                               labs(
@@ -985,6 +2332,7 @@ main_server <- function(input, output, session) {
                                                 x = "Standardized Production"
                                               ) +
                                               ggtitle(paste0("Figure 1\nWith an effect size of ", dt, ", failing to enact this program will result in ", u3, "% less production value than if enacted.")))
+      #plain text
       output$effectText <- renderText({
         paste0("The above graph shows the comparison of the effect size of a trained group to an untrained group. 
              With an effect size of ", input$dTrain2_1, ", ", u3, "% of the untrained group will be below the
@@ -992,7 +2340,7 @@ main_server <- function(input, output, session) {
              random from the untrained group will have a lower job performance value than a person picked at random
              from the trained group.")
       })
-      
+      #export pdf
       output$effect_download <- downloadHandler(
         filename = function() {
           "expectancy.pdf"  
@@ -1045,7 +2393,9 @@ main_server <- function(input, output, session) {
   #Training Utility Output Tab
   
   observeEvent(input$goUn,{
+    #compute unadjusted training utility
     utilityTrainUn <- input$nTrain*input$dTrain2*input$sdyTrain*input$tTrain-input$nTrain*input$costTrain2
+    #unadjusted break even sdy
     breakEven <- (input$nTrain*input$costTrain2)/(input$nTrain*input$tTrain*input$dTrain2)
     formatted_breakEvenTrain <- label_dollar(scale = .001, prefix= "$", suffix = "K")(signif(breakEven, 2))
     
@@ -1065,7 +2415,7 @@ main_server <- function(input, output, session) {
   
   observeEvent(input$go4,{
     enable("training_download")
-    
+    #create effect size graph for pdf
     u3 <- round(pnorm(input$dTrain2), 2)*100
     sup <- round(pnorm(input$dTrain2/sqrt(2)), 2)*100
     
@@ -1120,6 +2470,7 @@ main_server <- function(input, output, session) {
     add <- input$addTrain
     subt <- input$subTrain
     
+    #compute adjusted training utility
     intermediate_totDelta <- numeric(0)
     
     nk <- 0
@@ -1180,6 +2531,7 @@ main_server <- function(input, output, session) {
       
     })
     
+    #if else for months/years
     if (input$tTrain < 1) {
       ym <- paste(round(input$tTrain*12,0), "months")
     }
@@ -1187,7 +2539,8 @@ main_server <- function(input, output, session) {
       ym <- paste(input$tTrain, "years")
     }
     
-    if (option == "Training Program"){
+    #output for RODI
+    if (option == "Goal-Setting"){
       
       if (adjusted_utility < 0){
         output$training_utility <- renderText({
@@ -1217,30 +2570,30 @@ main_server <- function(input, output, session) {
         
       }
       else {
-      output$training_utility <- renderText({
-        paste("Failing to use this training program will have total RODI losses to the company of:", 
-              formatted_adjusted_utility,
-              "in RODI.")
-      })
-      output$training_utility_per_employee <- renderText({
-        paste("Failing to use this training program will have RODI losses to the company of:", 
-              formatted_adjusted_per_hire_utility,
-              "in RODI per employee.")
-      })
-      output$training_utility_per_employee_per_year <- renderText({
-        paste("Failing to use this training program will have RODI losses to the company of:", 
-              formatted_adjusted_per_year_utility,
-              "in RODI per employee per year.")
-      })
-      
-      training_text1 <- paste0("We have conducted an analysis in order to assess the return on development investment(RODI) for an employee training program.
+        output$training_utility <- renderText({
+          paste("Failing to use this training program will have total RODI losses to the company of:", 
+                formatted_adjusted_utility,
+                "in RODI.")
+        })
+        output$training_utility_per_employee <- renderText({
+          paste("Failing to use this training program will have RODI losses to the company of:", 
+                formatted_adjusted_per_hire_utility,
+                "in RODI per employee.")
+        })
+        output$training_utility_per_employee_per_year <- renderText({
+          paste("Failing to use this training program will have RODI losses to the company of:", 
+                formatted_adjusted_per_year_utility,
+                "in RODI per employee per year.")
+        })
+        
+        training_text1 <- paste0("We have conducted an analysis in order to assess the return on development investment(RODI) for an employee training program.
                The program consisted of ", input$nTrain, " employees attending leadership sessions over a short number of days. Research showed that ", u3, "% of employees who did not participate in the program were assessed to have lower job performance than those who did participate."
-                               )
-      
-      training_text2 <- paste0("Our cost analysis found that costs associated with the training program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher job performance, such as compensation enhancements. These are expected to offset RODI associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will be trained each year, and the training program is expected to be used for at least ", input$lengthTrain," years, implementing the training program is expected to cost our company ", formatted_trainCost, " per year."
-                               )
-      training_text3 <- paste0("We found that RODI is also affected by employee flows. When employees that attend the program lose the effects from training, the costs and benefits associated with the program change over time. Our research shows that employees that attended the program are expected to be affected for an average of ", ym, ". This means that when employees do not attend this program, the RODI loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total RODI loss of ", formatted_adjusted_utility, "."
-                               )
+        )
+        
+        training_text2 <- paste0("Our cost analysis found that costs associated with the training program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher job performance, such as compensation enhancements. These are expected to offset RODI associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased performance over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will be trained each year, and the training program is expected to be used for at least ", input$lengthTrain," years, implementing the training program is expected to cost our company ", formatted_trainCost, " per year."
+        )
+        training_text3 <- paste0("We found that RODI is also affected by employee flows. When employees that attend the program lose the effects from training, the costs and benefits associated with the program change over time. Our research shows that employees that attended the program are expected to be affected for an average of ", ym, ". This means that when employees do not attend this program, the RODI loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total RODI loss of ", formatted_adjusted_utility, "."
+        )
       }
       output$trainingText1 <- renderText({
         training_text1
@@ -1336,6 +2689,8 @@ main_server <- function(input, output, session) {
       )
       
     }
+    
+    #output for training
     else{
       
       workOut <- (input$sdP/100)*input$dTrain2
@@ -1371,31 +2726,31 @@ main_server <- function(input, output, session) {
         
       }
       else {
-      output$training_utility <- renderText({
-        paste("Failing to use this program will have total lost production costs to the company of:", 
-              formatted_adjusted_utility,
-              "in production value.")
-      })
-      output$training_utility_per_employee <- renderText({
-        paste("Failing to use this program will have lost production costs to the company of:", 
-              formatted_adjusted_per_hire_utility,
-              "in production value per employee.")
-      })
-      output$training_utility_per_employee_per_year <- renderText({
-        paste("Failing to use this program will have lost production costs to the company of:", 
-              formatted_adjusted_per_year_utility,
-              "in production value per employee per year.")
-      })
-      
-      goal_text1 <- paste0("An analysis was conducted in order to assess the production value of an employee goal setting program.
+        output$training_utility <- renderText({
+          paste("Failing to use this program will have total lost production costs to the company of:", 
+                formatted_adjusted_utility,
+                "in production value.")
+        })
+        output$training_utility_per_employee <- renderText({
+          paste("Failing to use this program will have lost production costs to the company of:", 
+                formatted_adjusted_per_hire_utility,
+                "in production value per employee.")
+        })
+        output$training_utility_per_employee_per_year <- renderText({
+          paste("Failing to use this program will have lost production costs to the company of:", 
+                formatted_adjusted_per_year_utility,
+                "in production value per employee per year.")
+        })
+        
+        goal_text1 <- paste0("An analysis was conducted in order to assess the production value of an employee goal setting program.
                The program consisted of ", input$nTrain, " employees who participated in setting goals for their production. Research showed that ",
-                          u3, "% of employees who did not participate in the program were less productive than those who did participate."
-      )
-      
-      goal_text2 <- paste0("Our cost analysis found that costs associated with the goal setting program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher production, such as materials cost. These are expected to offset production associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased production over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will use goal setting each year, and the goal setting program is expected to be used for at least ", input$lengthTrain," years, implementing the goal setting program is expected to cost our company ", formatted_trainCost, " per year."
-      )
-      goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees do not use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total production value loss of ", formatted_adjusted_utility, ". Failure to enact the goal setting program will also impact labor costs. Employees that are " , workOutPer, "% more productive means that we will require ", empred, "% fewer workers to meet production demands."
-      )
+                             u3, "% of employees who did not participate in the program were less productive than those who did participate."
+        )
+        
+        goal_text2 <- paste0("Our cost analysis found that costs associated with the goal setting program are $", input$costTrain2, " per employee. To make this cost estimate more accurate, we've applied three financial adjustments to our SDy figure of $", input$sdyTrain, ". The first is a variable cost adjustment and refers to costs that increase with higher production, such as materials cost. These are expected to offset production associated with training by ", input$vrateTrain, "%. Second, as higher performers should increase profits, returns should be taxed at the company's effective tax rate, which is ", input$taxTrain, "%. Lastly, the cash value of increased production over time must be discounted to the present to approximate the net present value of the program. The discount rate applied to this program is ", input$discTrain, "%. Since ", input$addTrain, " employees will use goal setting each year, and the goal setting program is expected to be used for at least ", input$lengthTrain," years, implementing the goal setting program is expected to cost our company ", formatted_trainCost, " per year."
+        )
+        goal_text3 <- paste0("We found that production value is also affected by employee flows. When employees that use the goal setting program lose the effects from goal setting, the costs and benefits associated with the program change over time. Our research shows that employees that use the goal setting program are expected to be affected for an average of ", input$tTrain, " years. This means that when employees do not use this program, the production value loss associated with each employee is ", formatted_adjusted_per_hire_utility, " or ", formatted_adjusted_per_year_utility, " per year. Considering this along with all previous factors, our analysis has found that failing to implement this program will result in a total production value loss of ", formatted_adjusted_utility, ". Failure to enact the goal setting program will also impact labor costs. Employees that are " , workOutPer, "% more productive means that we will require ", empred, "% fewer workers to meet production demands."
+        )
       }
       output$trainingText1 <- renderText({
         goal_text1
@@ -1455,26 +2810,26 @@ main_server <- function(input, output, session) {
             gp = gpar(fontsize = 20),
           )
           if (adjusted_utility > 0){
-          par1 <- textGrob(
-            gt1wrap,
-            x = unit(1, "in"), y = 0.8,
-            gp = gpar(fontsize = 14),
-            hjust = 0
-          )
-          
-          par2 <- textGrob(
-            gt2wrap,
-            x = unit(1, "in"), y = 0.5,
-            gp = gpar(fontsize = 14),
-            hjust = 0
-          )
-          
-          par3 <- textGrob(
-            gt3wrap,
-            x = unit(1, "in"), y = -0.35,
-            gp = gpar(fontsize = 14),
-            hjust = 0
-          )
+            par1 <- textGrob(
+              gt1wrap,
+              x = unit(1, "in"), y = 0.8,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
+            
+            par2 <- textGrob(
+              gt2wrap,
+              x = unit(1, "in"), y = 0.5,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
+            
+            par3 <- textGrob(
+              gt3wrap,
+              x = unit(1, "in"), y = -0.35,
+              gp = gpar(fontsize = 14),
+              hjust = 0
+            )
           }
           else {
             par1 <- textGrob(
